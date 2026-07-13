@@ -275,6 +275,16 @@ async function startServer() {
     server.listen(PORT, () => {
       console.log(`[ZONIX Backend] HTTP server running on port ${PORT}`);
       console.log(`[ZONIX Backend] WebSocket endpoint: ws://localhost:${PORT}/ws`);
+
+      // Database Keep-Warm Interval (Pings database every 4 minutes to prevent Neon scale-to-zero)
+      setInterval(async () => {
+        try {
+          await prisma.$queryRaw`SELECT 1`;
+          console.log('[DB] Keep-warm query executed successfully');
+        } catch (err) {
+          console.error('[DB] Keep-warm ping failed:', err.message);
+        }
+      }, 4 * 60 * 1000);
     });
   } catch (err) {
     console.error('[DB] Connection failed:', err.message);
