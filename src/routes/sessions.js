@@ -60,22 +60,24 @@ router.post('/:orgId', requireOrgAccess, async (req, res) => {
   const { orgId } = req.params;
   const { userId, targetUrl, proxyNodeId, cookies } = req.body;
 
+  // Always use the JWT-authenticated UUID, never trust the body userId
+  // (older clients may send username string instead of UUID)
+  const resolvedUserId = req.user.userId;
   console.log('[Sessions Create Route] Request received:', {
     orgId,
     bodyUserId: userId,
-    authedUserId: req.user?.userId,
+    resolvedUserId,
     targetUrl,
     proxyNodeId
   });
 
   try {
     const sessionService = new SessionService(prisma);
-    const resolvedUserId = userId || req.user.userId;
     const partitionId = `persist:org_${orgId}_user_${resolvedUserId}`;
 
     const session = await sessionService.createSession({
       orgId,
-      userId: userId || req.user.userId,
+      userId: resolvedUserId,
       targetUrl,
       proxyNodeId,
       partitionId,
