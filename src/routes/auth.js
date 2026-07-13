@@ -68,7 +68,7 @@ router.post('/login', [
 
   const prisma = req.app.get('prisma');
   let { orgId, username, password } = req.body;
-  const ipAddress = req.ip || req.connection?.remoteAddress || '';
+  const ipAddress = (req.headers['x-forwarded-for'] || req.ip || req.connection?.remoteAddress || '').split(',')[0].trim();
 
   try {
     const fs = require('fs');
