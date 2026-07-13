@@ -87,6 +87,8 @@ model Session {
 
   @@index([orgId, userId])
   @@index([status])
+  @@index([orgId, startedAt])
+  @@index([orgId, createdAt])
   @@map("sessions")
 }
 

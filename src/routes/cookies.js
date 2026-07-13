@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const { requireOrgAccess } = require('../middleware/auth');
 const { encryptData, decryptData } = require('../services/encryption');
 
-router.post('/store', async (req, res) => {
+router.post('/store', requireOrgAccess, async (req, res) => {
   const prisma = req.app.get('prisma');
   const { orgId, userId, targetDomain, cookies } = req.body;
 
@@ -41,7 +42,7 @@ router.post('/store', async (req, res) => {
   }
 });
 
-router.get('/retrieve/:orgId/:userId/:targetDomain', async (req, res) => {
+router.get('/retrieve/:orgId/:userId/:targetDomain', requireOrgAccess, async (req, res) => {
   const prisma = req.app.get('prisma');
   const { orgId, userId, targetDomain } = req.params;
 
@@ -77,7 +78,7 @@ router.get('/retrieve/:orgId/:userId/:targetDomain', async (req, res) => {
   }
 });
 
-router.delete('/:orgId/:userId/:targetDomain', async (req, res) => {
+router.delete('/:orgId/:userId/:targetDomain', requireOrgAccess, async (req, res) => {
   const prisma = req.app.get('prisma');
   const { orgId, userId, targetDomain } = req.params;
 
