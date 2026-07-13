@@ -1,0 +1,227 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id            String           @id @default(uuid())
+  name          String           @unique
+  displayName   String
+  status        OrganizationStatus @default(ACTIVE)
+  maxUsers      Int              @default(50)
+  maxSessions   Int              @default(25)
+  targetUrl     String?
+  proxyNodes    ProxyNode[]
+  users         User[]
+  sessions      Session[]
+  hwProfiles    HardwareProfile[]
+  apiKeys       ApiKey[]
+  auditLogs     AuditLog[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@map("organizations")
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+model User {
+  id            String         @id @default(uuid())
+  orgId         String
+  org           Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  username      String
+  email         String?
+  passwordHash  String
+  role          UserRole       @default(DISPATCHER)
+  status        UserStatus     @default(ACTIVE)
+  sessions      Session[]
+  auditLogs     AuditLog[]
+  lastLoginAt   DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([orgId, username])
+  @@map("users")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  DISPATCHER
+  VIEWER
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  LOCKED
+}
+
+model Session {
+  id            String         @id @default(uuid())
+  orgId         String
+  org           Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status        SessionStatus  @default(ACTIVE)
+  targetUrl     String
+  proxyNodeId   String?
+  proxyNode     ProxyNode?     @relation(fields: [proxyNodeId], references: [id])
+  partitionId   String
+  encryptedCookieData String?
+  startedAt     DateTime       @default(now())
+  lastHeartbeat DateTime?
+  endedAt       DateTime?
+  endReason     String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([orgId, userId])
+  @@index([status])
+  @@map("sessions")
+}
+
+enum SessionStatus {
+  ACTIVE
+  IDLE
+  DISCONNECTED
+  KILLED
+  ERROR
+}
+
+model ProxyNode {
+  id            String         @id @default(uuid())
+  orgId         String
+  org           Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name          String
+  host          String
+  port          Int
+  protocol      ProxyProtocol  @default(HTTP)
+  username      String?
+  passwordHash  String?
+  status        ProxyStatus    @default(ACTIVE)
+  latencyMs     Int?
+  lastCheckedAt DateTime?
+  sessions      Session[]
+  healthChecks  ProxyHealthCheck[]
+  maxSessions   Int            @default(10)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([orgId, name])
+  @@map("proxy_nodes")
+}
+
+enum ProxyProtocol {
+  HTTP
+  HTTPS
+  SOCKS5
+}
+
+enum ProxyStatus {
+  ACTIVE
+  DEGRADED
+  UNREACHABLE
+  MAINTENANCE
+}
+
+model ProxyHealthCheck {
+  id            String     @id @default(uuid())
+  proxyNodeId   String
+  proxyNode     ProxyNode  @relation(fields: [proxyNodeId], references: [id], onDelete: Cascade)
+  latencyMs     Int?
+  status        ProxyStatus
+  checkedAt     DateTime   @default(now())
+
+  @@index([proxyNodeId, checkedAt])
+  @@map("proxy_health_checks")
+}
+
+model HardwareProfile {
+  id            String     @id @default(uuid())
+  orgId         String
+  org           Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name          String
+  userAgent     String
+  platform      String     @default("Win32")
+  screenResolution String  @default("1920x1080")
+  languages     String   @default("en-US,en")
+  hardwareConcurrency Int  @default(8)
+  deviceMemory  Int        @default(8)
+  webglVendor   String?
+  webglRenderer String?
+  isDefault     Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@unique([orgId, name])
+  @@map("hardware_profiles")
+}
+
+model MasterCookie {
+  id            String     @id @default(uuid())
+  orgId         String
+  userId        String
+  targetDomain  String
+  encryptedData String
+  iv            String
+  hash          String
+  expiresAt     DateTime?
+  capturedAt    DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@unique([orgId, userId, targetDomain])
+  @@map("master_cookies")
+}
+
+model ApiKey {
+  id            String     @id @default(uuid())
+  orgId         String
+  org           Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name          String
+  keyHash       String
+  keyPrefix     String
+  permissions   String   @default("[]")
+  lastUsedAt    DateTime?
+  expiresAt     DateTime?
+  createdAt     DateTime   @default(now())
+
+  @@unique([orgId, name])
+  @@map("api_keys")
+}
+
+model AuditLog {
+  id            String     @id @default(uuid())
+  orgId         String
+  org           Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId        String?
+  user          User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action        String
+  resource      String
+  resourceId    String?
+  details       Json?
+  ipAddress     String?
+  createdAt     DateTime   @default(now())
+
+  @@index([orgId, createdAt])
+  @@index([userId, createdAt])
+  @@map("audit_logs")
+}
+
+model SystemConfig {
+  id            String     @id @default(uuid())
+  key           String     @unique
+  value         Json
+  updatedAt     DateTime   @updatedAt
+
+  @@map("system_config")
+}
