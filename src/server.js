@@ -196,21 +196,25 @@ function broadcastToAll(message) {
 
 async function sendSessionsToClient(client) {
   try {
+    // SUPER_ADMIN sees sessions from ALL orgs
+    const where = client.role === 'SUPER_ADMIN'
+      ? { status: 'ACTIVE' }
+      : { orgId: client.orgId, status: 'ACTIVE' };
+
     const sessions = await prisma.session.findMany({
-      where: {
-        orgId: client.orgId,
-        status: 'ACTIVE'
-      },
+      where,
       include: {
         user: { select: { username: true } },
-        proxyNode: { select: { name: true } }
+        proxyNode: { select: { name: true } },
+        org: { select: { displayName: true } }
       }
     });
 
     const payload = sessions.map(s => ({
       sessionId: s.id,
       orgId: s.orgId,
-      operator: s.user.username,
+      org: s.org?.displayName || s.orgId,
+      operator: s.user?.username || 'Unknown',
       proxyNode: s.proxyNode?.name || 'none',
       status: s.status,
       targetUrl: s.targetUrl,
@@ -226,7 +230,8 @@ async function sendSessionsToClient(client) {
 
 async function broadcastSessions(orgId) {
   wsClients.forEach(async (client) => {
-    if (client.orgId === orgId) {
+    // Notify the org's own clients AND any SUPER_ADMIN clients
+    if (client.orgId === orgId || client.role === 'SUPER_ADMIN') {
       await sendSessionsToClient(client);
     }
   });

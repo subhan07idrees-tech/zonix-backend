@@ -145,7 +145,8 @@ router.get('/audit', async (req, res) => {
 
   try {
     const where = {};
-    if (req.user.orgId) where.orgId = req.user.orgId;
+    // SUPER_ADMIN sees logs from ALL orgs; others only see their own org
+    if (req.user.role !== 'SUPER_ADMIN') where.orgId = req.user.orgId;
     if (userId) where.userId = userId;
     if (resource) where.resource = resource;
     if (startDate || endDate) {
