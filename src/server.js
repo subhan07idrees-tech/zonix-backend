@@ -56,7 +56,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.set('prisma', prisma);
 
-app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/organizations', authenticateToken, orgRoutes);
 app.use('/api/users', authenticateToken, userRoutes);
 app.use('/api/sessions', authenticateToken, sessionRoutes);

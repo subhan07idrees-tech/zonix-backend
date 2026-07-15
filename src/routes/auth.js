@@ -3,8 +3,17 @@ const bcrypt = require('bcryptjs');
 const { body, validationResult } = require('express-validator');
 const { generateToken } = require('../middleware/auth');
 const { getIpLocation } = require('../services/geolocation');
+const rateLimit = require('express-rate-limit');
 
 const router = express.Router();
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'development' ? 1000 : 30,
+  message: { error: 'Too many authentication attempts' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 async function logLoginAttempt(prisma, { orgId, username, success, error, ipAddress }) {
   try {
@@ -47,9 +56,9 @@ async function logLoginAttempt(prisma, { orgId, username, success, error, ipAddr
           success,
           error: error || null,
           city: loc.city,
-          state: loc.state
-        },
-        ipAddress
+          state: loc.state,
+          ipAddress
+        }
       }
     });
   } catch (err) {
@@ -57,7 +66,7 @@ async function logLoginAttempt(prisma, { orgId, username, success, error, ipAddr
   }
 }
 
-router.post('/login', [
+router.post('/login', authLimiter, [
   body('username').notEmpty().withMessage('Username required'),
   body('password').notEmpty().withMessage('Password required')
 ], async (req, res) => {
