@@ -131,7 +131,7 @@ router.put('/:orgId', requireRole('SUPER_ADMIN', 'ADMIN'), requireOrgAccess, [
     res.json({ organization: updated });
   } catch (err) {
     console.error('[Org] Update error:', err.message);
-    res.status(500).json({ error: `Failed to update organization: ${err.message}` });
+    res.status(500).json({ error: 'Failed to update organization' });
   }
 });
 
