@@ -194,6 +194,23 @@ function broadcastToAll(message) {
   });
 }
 
+function forceLogoutUser(userId, excludeClientId) {
+  const payload = JSON.stringify({ type: 'command:logout' });
+  wsClients.forEach((client, id) => {
+    if (client.userId === userId && id !== excludeClientId) {
+      if (client.ws.readyState === WebSocket.OPEN) {
+        client.ws.send(payload);
+        console.log(`[WS] Sent force-logout command to client: ${id}`);
+        setTimeout(() => {
+          try {
+            client.ws.close(1008, 'Logged in elsewhere');
+          } catch (e) {}
+        }, 200);
+      }
+    }
+  });
+}
+
 async function sendSessionsToClient(client) {
   try {
     // SUPER_ADMIN sees sessions from ALL orgs
@@ -308,4 +325,4 @@ process.on('SIGINT', async () => {
 
 startServer();
 
-module.exports = { app, server, prisma, wss, broadcastToOrg, broadcastToAll, broadcastSessions, sendSessionsToClient };
+module.exports = { app, server, prisma, wss, broadcastToOrg, broadcastToAll, broadcastSessions, sendSessionsToClient, forceLogoutUser };

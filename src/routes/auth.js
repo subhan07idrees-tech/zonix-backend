@@ -129,6 +129,24 @@ router.post('/login', [
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    // Terminate any existing active dispatcher sessions for this user in DB
+    try {
+      await prisma.session.updateMany({
+        where: { userId: user.id, status: 'ACTIVE' },
+        data: { status: 'KILLED', endedAt: new Date(), endReason: 'login-conflict' }
+      });
+    } catch (dbErr) {
+      console.error('[Auth] Failed to terminate existing DB sessions:', dbErr.message);
+    }
+
+    // Trigger a force logout command via WebSocket to other client instances of this user
+    try {
+      const { forceLogoutUser } = require('../server');
+      forceLogoutUser(user.id);
+    } catch (wsErr) {
+      console.error('[Auth] Failed to broadcast force-logout:', wsErr.message);
+    }
+
     await prisma.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() }
