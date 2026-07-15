@@ -99,11 +99,12 @@ router.post('/:orgId', requireOrgAccess, requireRole('SUPER_ADMIN', 'ADMIN', 'MA
 router.put('/:orgId/:userId', requireOrgAccess, requireRole('SUPER_ADMIN', 'ADMIN', 'MANAGER'), [
   body('role').optional().isIn(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'DISPATCHER', 'VIEWER']),
   body('status').optional().isIn(['ACTIVE', 'SUSPENDED', 'LOCKED']),
-  body('email').optional().isEmail()
+  body('email').optional().isEmail(),
+  body('password').optional().isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
 ], async (req, res) => {
   const prisma = req.app.get('prisma');
   const { orgId, userId } = req.params;
-  const { role, status, email } = req.body;
+  const { role, status, email, password } = req.body;
 
   try {
     const user = await prisma.user.findFirst({
@@ -113,12 +114,19 @@ router.put('/:orgId/:userId', requireOrgAccess, requireRole('SUPER_ADMIN', 'ADMI
       return res.status(404).json({ error: 'User not found' });
     }
 
+    let passwordHash = undefined;
+    if (password) {
+      const bcrypt = require('bcryptjs');
+      passwordHash = await bcrypt.hash(password, 12);
+    }
+
     const updated = await prisma.user.update({
       where: { id: userId },
       data: {
         ...(role && { role }),
         ...(status && { status }),
-        ...(email !== undefined && { email })
+        ...(email !== undefined && { email }),
+        ...(passwordHash && { passwordHash })
       },
       select: {
         id: true,
