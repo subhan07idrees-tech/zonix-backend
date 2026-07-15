@@ -14,6 +14,7 @@ model Organization {
   status        OrganizationStatus @default(ACTIVE)
   maxUsers      Int              @default(50)
   maxSessions   Int              @default(25)
+  maxTabs       Int              @default(5)
   targetUrl     String?
   proxyNodes    ProxyNode[]
   users         User[]

@@ -170,7 +170,8 @@ router.post('/login', [
         id: org.id,
         name: org.name,
         displayName: org.displayName,
-        targetUrl: org.targetUrl
+        targetUrl: org.targetUrl,
+        maxTabs: org.maxTabs
       }
     });
   } catch (err) {

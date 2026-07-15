@@ -59,7 +59,8 @@ router.post('/', requireRole('SUPER_ADMIN'), [
   body('name').notEmpty().trim().withMessage('Name required'),
   body('displayName').notEmpty().trim().withMessage('Display name required'),
   body('maxUsers').optional().isInt({ min: 1, max: 1000 }),
-  body('maxSessions').optional().isInt({ min: 1, max: 500 })
+  body('maxSessions').optional().isInt({ min: 1, max: 500 }),
+  body('maxTabs').optional().isInt({ min: 1, max: 100 })
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -67,7 +68,7 @@ router.post('/', requireRole('SUPER_ADMIN'), [
   }
 
   const prisma = req.app.get('prisma');
-  const { name, displayName, maxUsers, maxSessions, targetUrl } = req.body;
+  const { name, displayName, maxUsers, maxSessions, maxTabs, targetUrl } = req.body;
 
   try {
     const existing = await prisma.organization.findUnique({ where: { name } });
@@ -81,6 +82,7 @@ router.post('/', requireRole('SUPER_ADMIN'), [
         displayName,
         maxUsers: maxUsers || 50,
         maxSessions: maxSessions || 25,
+        maxTabs: maxTabs || 5,
         targetUrl: targetUrl || null
       }
     });
@@ -96,7 +98,8 @@ router.put('/:orgId', requireRole('SUPER_ADMIN', 'ADMIN'), requireOrgAccess, [
   body('displayName').optional().trim(),
   body('status').optional().isIn(['ACTIVE', 'SUSPENDED', 'DEACTIVATED']),
   body('maxUsers').optional().isInt({ min: 1, max: 1000 }),
-  body('maxSessions').optional().isInt({ min: 1, max: 500 })
+  body('maxSessions').optional().isInt({ min: 1, max: 500 }),
+  body('maxTabs').optional().isInt({ min: 1, max: 100 })
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -105,7 +108,7 @@ router.put('/:orgId', requireRole('SUPER_ADMIN', 'ADMIN'), requireOrgAccess, [
 
   const prisma = req.app.get('prisma');
   const { orgId } = req.params;
-  const { displayName, status, maxUsers, maxSessions, targetUrl } = req.body;
+  const { displayName, status, maxUsers, maxSessions, maxTabs, targetUrl } = req.body;
 
   try {
     const org = await prisma.organization.findUnique({ where: { id: orgId } });
@@ -120,6 +123,7 @@ router.put('/:orgId', requireRole('SUPER_ADMIN', 'ADMIN'), requireOrgAccess, [
         ...(status && { status }),
         ...(maxUsers && { maxUsers }),
         ...(maxSessions && { maxSessions }),
+        ...(maxTabs && { maxTabs }),
         ...(targetUrl !== undefined && { targetUrl })
       }
     });
