@@ -5,14 +5,18 @@ const { encryptData, decryptData } = require('../services/encryption');
 
 router.post('/store', requireOrgAccess, async (req, res) => {
   const prisma = req.app.get('prisma');
-  const { orgId, userId, targetDomain, cookies } = req.body;
+  const { orgId, userId, targetDomain, cookies, localStorage } = req.body;
 
   try {
     if (!orgId || !userId || !targetDomain || !cookies) {
       return res.status(400).json({ error: 'orgId, userId, targetDomain, and cookies required' });
     }
 
-    const cookieJson = JSON.stringify(cookies);
+    const payload = {
+      cookies,
+      localStorage: localStorage || '{}'
+    };
+    const cookieJson = JSON.stringify(payload);
     const { encryptedData, iv, hash } = encryptData(cookieJson);
 
     const masterCookie = await prisma.masterCookie.upsert({
@@ -69,9 +73,24 @@ router.get('/retrieve/:orgId/:userId/:targetDomain', requireOrgAccess, async (re
     }
 
     const decryptedJson = decryptData(masterCookie.encryptedData, masterCookie.iv);
-    const cookies = JSON.parse(decryptedJson);
+    const parsed = JSON.parse(decryptedJson);
 
-    res.json({ cookies, hash: masterCookie.hash, capturedAt: masterCookie.capturedAt });
+    let cookies = [];
+    let localStorageData = '{}';
+
+    if (Array.isArray(parsed)) {
+      cookies = parsed;
+    } else if (parsed && parsed.cookies) {
+      cookies = parsed.cookies;
+      localStorageData = parsed.localStorage || '{}';
+    }
+
+    res.json({ 
+      cookies, 
+      localStorage: localStorageData, 
+      hash: masterCookie.hash, 
+      capturedAt: masterCookie.capturedAt 
+    });
   } catch (err) {
     console.error('[Cookies] Retrieve error:', err.message);
     res.status(500).json({ error: 'Failed to retrieve cookies' });
