@@ -58,6 +58,16 @@ router.get('/retrieve/:orgId/:userId/:targetDomain', requireOrgAccess, async (re
     });
 
     if (!masterCookie) {
+      // Fallback 1: Try to look for Organization-wide (All Dispatchers) session (userId = 'system')
+      masterCookie = await prisma.masterCookie.findUnique({
+        where: {
+          orgId_userId_targetDomain: { orgId, userId: 'system', targetDomain }
+        }
+      });
+    }
+
+    if (!masterCookie) {
+      // Fallback 2: Fall back to the most recently updated session for this org and domain
       masterCookie = await prisma.masterCookie.findFirst({
         where: { orgId, targetDomain },
         orderBy: { updatedAt: 'desc' }
