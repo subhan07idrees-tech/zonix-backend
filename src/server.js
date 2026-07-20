@@ -38,7 +38,7 @@ app.use(cors({
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 500,
+  max: 2000,
   message: { error: 'Rate limit exceeded' },
   standardHeaders: true,
   legacyHeaders: false
