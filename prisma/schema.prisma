@@ -43,6 +43,7 @@ model User {
   passwordHash  String
   role          UserRole       @default(DISPATCHER)
   status        UserStatus     @default(ACTIVE)
+  maxTabs       Int            @default(5)
   sessions      Session[]
   auditLogs     AuditLog[]
   lastLoginAt   DateTime?

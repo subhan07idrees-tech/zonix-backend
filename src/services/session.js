@@ -17,6 +17,16 @@ class SessionService {
       throw new Error(`Organization session limit reached (${org.maxSessions})`);
     }
 
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (user && user.maxTabs) {
+      const userActiveSessions = await this.prisma.session.count({
+        where: { userId, status: 'ACTIVE' }
+      });
+      if (userActiveSessions >= user.maxTabs) {
+        throw new Error(`User tab limit reached (max: ${user.maxTabs})`);
+      }
+    }
+
     let encryptedCookieData = null;
     if (cookies && cookies.length > 0) {
       const cookieJson = JSON.stringify(cookies);

@@ -19,6 +19,7 @@ router.get('/:orgId', requireOrgAccess, async (req, res) => {
         email: true,
         role: true,
         status: true,
+        maxTabs: true,
         lastLoginAt: true,
         createdAt: true,
         _count: { select: { sessions: true } }
@@ -38,7 +39,8 @@ router.post('/:orgId', requireOrgAccess, requireRole('SUPER_ADMIN', 'ADMIN', 'MA
   body('username').notEmpty().trim().withMessage('Username required'),
   body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
   body('role').optional().isIn(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'DISPATCHER', 'VIEWER']),
-  body('email').optional().isEmail()
+  body('email').optional().isEmail(),
+  body('maxTabs').optional().isInt({ min: 1, max: 100 })
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -47,7 +49,7 @@ router.post('/:orgId', requireOrgAccess, requireRole('SUPER_ADMIN', 'ADMIN', 'MA
 
   const prisma = req.app.get('prisma');
   const { orgId } = req.params;
-  const { username, password, role, email } = req.body;
+  const { username, password, role, email, maxTabs } = req.body;
 
   try {
     console.log('[ZONIX Backend] Creating user for org:', orgId, 'username:', username, 'role:', role);
@@ -77,7 +79,8 @@ router.post('/:orgId', requireOrgAccess, requireRole('SUPER_ADMIN', 'ADMIN', 'MA
         username,
         passwordHash,
         role: role || 'DISPATCHER',
-        email: email || null
+        email: email || null,
+        maxTabs: maxTabs ? parseInt(maxTabs) : 5
       },
       select: {
         id: true,
@@ -85,6 +88,7 @@ router.post('/:orgId', requireOrgAccess, requireRole('SUPER_ADMIN', 'ADMIN', 'MA
         email: true,
         role: true,
         status: true,
+        maxTabs: true,
         createdAt: true
       }
     });
@@ -100,11 +104,12 @@ router.put('/:orgId/:userId', requireOrgAccess, requireRole('SUPER_ADMIN', 'ADMI
   body('role').optional().isIn(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'DISPATCHER', 'VIEWER']),
   body('status').optional().isIn(['ACTIVE', 'SUSPENDED', 'LOCKED']),
   body('email').optional().isEmail(),
-  body('password').optional().isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+  body('password').optional().isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+  body('maxTabs').optional().isInt({ min: 1, max: 100 })
 ], async (req, res) => {
   const prisma = req.app.get('prisma');
   const { orgId, userId } = req.params;
-  const { role, status, email, password } = req.body;
+  const { role, status, email, password, maxTabs } = req.body;
 
   try {
     const user = await prisma.user.findFirst({
@@ -126,6 +131,7 @@ router.put('/:orgId/:userId', requireOrgAccess, requireRole('SUPER_ADMIN', 'ADMI
         ...(role && { role }),
         ...(status && { status }),
         ...(email !== undefined && { email }),
+        ...(maxTabs !== undefined && { maxTabs: parseInt(maxTabs) }),
         ...(passwordHash && { passwordHash })
       },
       select: {
@@ -134,6 +140,7 @@ router.put('/:orgId/:userId', requireOrgAccess, requireRole('SUPER_ADMIN', 'ADMI
         email: true,
         role: true,
         status: true,
+        maxTabs: true,
         lastLoginAt: true
       }
     });
