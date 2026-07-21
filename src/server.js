@@ -4,6 +4,7 @@ const http = require('http');
 const { WebSocketServer, WebSocket } = require('ws');
 const cors = require('cors');
 const helmet = require('helmet');
+const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const { PrismaClient } = require('@prisma/client');
 
@@ -29,6 +30,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 4000;
 const WS_PORT = process.env.WS_PORT || 4001;
 
+app.use(compression());
 app.use(helmet());
 app.use(cors({
   origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173', 'http://localhost:3000'],
