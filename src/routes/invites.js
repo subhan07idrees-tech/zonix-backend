@@ -192,7 +192,7 @@ router.post('/:orgId', authenticateToken, requireOrgAccess, requireRole('SUPER_A
     });
 
     const webDomain = process.env.PUBLIC_WEB_URL || 'https://thezonix.com';
-    const inviteLink = `${webDomain}/join.html?token=${token}`;
+    const inviteLink = `${webDomain}/join?token=${token}`;
 
     // Send email asynchronously
     const emailResult = await sendInviteEmail({
