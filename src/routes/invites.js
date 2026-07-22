@@ -143,7 +143,7 @@ router.get('/:orgId', authenticateToken, requireOrgAccess, requireRole('SUPER_AD
 
   try {
     const invites = await prisma.userInvite.findMany({
-      where: { orgId },
+      where: { orgId, status: 'PENDING' },
       orderBy: { createdAt: 'desc' }
     });
 
