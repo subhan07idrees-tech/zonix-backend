@@ -177,11 +177,9 @@ router.post('/:orgId', authenticateToken, requireOrgAccess, requireRole('SUPER_A
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
 
-    // Create or replace pending invite for this email in this org
-    const invite = await prisma.userInvite.upsert({
-      where: { token }, // new token
-      update: {},
-      create: {
+    // Create pending invite for this email in this org
+    const invite = await prisma.userInvite.create({
+      data: {
         orgId,
         email: email.toLowerCase().trim(),
         role,
