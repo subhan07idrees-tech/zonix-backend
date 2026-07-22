@@ -16,52 +16,88 @@ async function sendInviteEmail({ email, orgName, role, inviteLink, expiresAt }) 
 
   const html = `
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>You've been invited to join ZONIX</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0b0f19; color: #f3f4f6; margin: 0; padding: 40px 20px; }
-    .container { max-width: 560px; margin: 0 auto; background-color: #111827; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 40px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5); }
-    .logo-container { display: flex; align-items: center; gap: 10px; margin-bottom: 30px; }
-    .logo-text { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; color: #ffffff; }
-    .badge { display: inline-block; padding: 4px 12px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa; font-size: 12px; font-weight: 600; border-radius: 9999px; margin-bottom: 20px; }
-    h1 { font-size: 26px; font-weight: 800; color: #ffffff; margin: 0 0 16px 0; line-height: 1.25; }
-    p { font-size: 15px; line-height: 1.6; color: #9ca3af; margin: 0 0 24px 0; }
-    .org-box { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 18px; margin-bottom: 28px; }
-    .org-title { font-size: 11px; text-transform: uppercase; tracking: 0.1em; color: #6b7280; font-weight: 700; margin-bottom: 4px; }
-    .org-name { font-size: 18px; font-weight: 700; color: #38bdf8; }
-    .btn { display: inline-block; background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); color: #ffffff; text-decoration: none; font-weight: 700; font-size: 15px; padding: 14px 32px; border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.5); text-align: center; }
-    .expiry { font-size: 12px; color: #6b7280; margin-top: 24px; }
-    .footer { margin-top: 36px; pt-20 border-top: 1px solid rgba(255, 255, 255, 0.05); font-size: 12px; color: #4b5563; text-align: center; }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>You've been invited to join ${orgName} on ZONIX</title>
 </head>
-<body>
-  <div class="container">
-    <div class="logo-container">
-      <div class="logo-text">ZONIX <span style="font-size: 12px; color: #38bdf8; font-weight: 600;">SESSION OS</span></div>
-    </div>
+<body style="margin: 0; padding: 0; background-color: #0b0f19; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #0b0f19; padding: 40px 10px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 540px; background-color: #111827; border: 1px solid #1f2937; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.6);">
+          
+          <!-- HEADER / BRANDING -->
+          <tr>
+            <td style="padding: 32px 32px 20px 32px; border-bottom: 1px solid #1f2937;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td>
+                    <span style="font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #ffffff;">ZONIX</span>
+                    <span style="display: inline-block; margin-left: 8px; font-size: 10px; font-weight: 800; letter-spacing: 2px; color: #00F0FF; text-transform: uppercase;">SESSION OS</span>
+                  </td>
+                  <td align="right">
+                    <span style="display: inline-block; padding: 4px 10px; background-color: rgba(0, 240, 255, 0.1); border: 1px solid rgba(0, 240, 255, 0.25); color: #00F0FF; font-size: 11px; font-weight: 700; border-radius: 20px;">INVITATION</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-    <div class="badge">DISPATCH TEAM INVITATION</div>
+          <!-- BODY CONTENT -->
+          <tr>
+            <td style="padding: 32px;">
+              <h1 style="margin: 0 0 12px 0; font-size: 24px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">Join <span style="color: #00F0FF;">${orgName}</span> on ZONIX</h1>
+              <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: #9ca3af;">
+                You have been invited to join the <strong>${orgName}</strong> dispatch team as a <strong style="color: #ffffff;">${role}</strong> on ZONIX Session OS. Click the button below to choose your credentials and activate your account.
+              </p>
 
-    <h1>Join ${orgName} on ZONIX</h1>
-    <p>You have been invited to join <strong>${orgName}</strong> as a <strong>${role}</strong> on ZONIX Session OS. Click the button below to choose your username and password to create your account.</p>
+              <!-- METADATA CARD -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #0d1322; border: 1px solid #1e293b; border-radius: 14px; margin-bottom: 28px;">
+                <tr>
+                  <td style="padding: 16px 20px;">
+                    <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; margin-bottom: 4px;">ORGANIZATION</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #ffffff;">${orgName}</div>
+                  </td>
+                  <td style="padding: 16px 20px; text-align: right;">
+                    <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; margin-bottom: 4px;">ASSIGNED ROLE</div>
+                    <div style="font-size: 14px; font-weight: 700; color: #38bdf8;">${role}</div>
+                  </td>
+                </tr>
+              </table>
 
-    <div class="org-box">
-      <div class="org-title">ORGANIZATION</div>
-      <div class="org-name">${orgName}</div>
-    </div>
+              <!-- CALL TO ACTION BUTTON -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 28px;">
+                <tr>
+                  <td align="center">
+                    <a href="${inviteLink}" target="_blank" style="display: inline-block; background-color: #2563eb; background-image: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); color: #ffffff !important; text-decoration: none !important; font-size: 15px; font-weight: 700; padding: 16px 36px; border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.5); border: 0;">
+                      Accept Invitation &amp; Create Account &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
 
-    <div style="text-align: center; margin: 30px 0;">
-      <a href="${inviteLink}" class="btn" target="_blank">Accept Invitation &amp; Create Account</a>
-    </div>
+              <!-- EXPIRY NOTICE -->
+              <p style="margin: 0; font-size: 12px; color: #64748b; text-align: center; line-height: 1.5;">
+                ⏳ This invitation link expires on <strong>${formattedExpiry}</strong> (48 hours).
+              </p>
+            </td>
+          </tr>
 
-    <p class="expiry">⌛ This invite link will expire on <strong>${formattedExpiry}</strong> (48 hours).</p>
+          <!-- FOOTER -->
+          <tr>
+            <td style="padding: 20px 32px; background-color: #0d1322; border-top: 1px solid #1f2937; text-align: center;">
+              <p style="margin: 0; font-size: 11px; color: #475569;">
+                &copy; 2026 ZONIX Systems. Multi-Tenant Session Sharing Infrastructure.
+              </p>
+            </td>
+          </tr>
 
-    <div class="footer">
-      &copy; 2026 ZONIX Systems. Secure Dispatch Infrastructure.
-    </div>
-  </div>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>
   `;
