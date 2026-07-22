@@ -187,7 +187,7 @@ router.post('/:orgId', authenticateToken, requireOrgAccess, requireRole('SUPER_A
         token,
         status: 'PENDING',
         expiresAt,
-        invitedBy: req.user.id
+        invitedBy: req.user.userId || req.user.id || 'system'
       }
     });
 
