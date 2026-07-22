@@ -22,6 +22,7 @@ model Organization {
   hwProfiles    HardwareProfile[]
   apiKeys       ApiKey[]
   auditLogs     AuditLog[]
+  invites       UserInvite[]
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
@@ -229,3 +230,28 @@ model SystemConfig {
 
   @@map("system_config")
 }
+
+model UserInvite {
+  id          String       @id @default(uuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  email       String
+  role        UserRole     @default(DISPATCHER)
+  maxTabs     Int          @default(5)
+  token       String       @unique
+  status      InviteStatus @default(PENDING)
+  expiresAt   DateTime
+  invitedBy   String
+  createdAt   DateTime     @default(now())
+
+  @@index([orgId])
+  @@map("user_invites")
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+

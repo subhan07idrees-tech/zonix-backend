@@ -17,6 +17,7 @@ const heartbeatRoutes = require('./routes/heartbeat');
 const eventRoutes = require('./routes/events');
 const cookieRoutes = require('./routes/cookies');
 const dashboardRoutes = require('./routes/dashboard');
+const inviteRoutes = require('./routes/invites');
 const { authenticateToken } = require('./middleware/auth');
 const { auditMiddleware } = require('./middleware/audit');
 
@@ -67,6 +68,7 @@ app.use('/api/heartbeat', authenticateToken, heartbeatRoutes);
 app.use('/api/events', authenticateToken, eventRoutes);
 app.use('/api/cookies', authenticateToken, cookieRoutes);
 app.use('/api/dashboard', authenticateToken, dashboardRoutes);
+app.use('/api/invites', inviteRoutes);
 
 app.use(auditMiddleware);
 
