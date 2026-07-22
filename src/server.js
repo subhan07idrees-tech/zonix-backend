@@ -33,10 +33,26 @@ const WS_PORT = process.env.WS_PORT || 4001;
 
 app.use(compression());
 app.use(helmet());
+const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [];
+
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173', 'http://localhost:3000'],
+  origin: function (origin, callback) {
+    // Allow non-browser requests (Electron app, mobile apps, curl)
+    if (!origin) return callback(null, true);
+    
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.includes('thezonix.com') ||
+      origin.includes('workers.dev') ||
+      origin.includes('localhost')
+    ) {
+      return callback(null, true);
+    }
+    
+    return callback(null, true); // Allow web requests
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
 }));
 
 const limiter = rateLimit({
