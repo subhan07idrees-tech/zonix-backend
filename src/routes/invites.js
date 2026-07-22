@@ -2,7 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { body, validationResult } = require('express-validator');
-const { requireRole, requireOrgAccess } = require('../middleware/auth');
+const { authenticateToken, requireRole, requireOrgAccess } = require('../middleware/auth');
 const { sendInviteEmail } = require('../services/email');
 
 const router = express.Router();
@@ -137,7 +137,7 @@ router.post('/accept', [
 });
 
 // Admin: Get all pending/recent invites for an organization
-router.get('/:orgId', requireOrgAccess, requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
+router.get('/:orgId', authenticateToken, requireOrgAccess, requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
   const prisma = req.app.get('prisma');
   const { orgId } = req.params;
 
@@ -155,7 +155,7 @@ router.get('/:orgId', requireOrgAccess, requireRole('SUPER_ADMIN', 'ADMIN'), asy
 });
 
 // Admin: Create and send invitation email
-router.post('/:orgId', requireOrgAccess, requireRole('SUPER_ADMIN', 'ADMIN'), [
+router.post('/:orgId', authenticateToken, requireOrgAccess, requireRole('SUPER_ADMIN', 'ADMIN'), [
   body('email').isEmail().withMessage('Valid email required'),
   body('role').optional().isIn(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'DISPATCHER', 'VIEWER']),
   body('maxTabs').optional().isInt({ min: 1, max: 50 })
@@ -225,7 +225,7 @@ router.post('/:orgId', requireOrgAccess, requireRole('SUPER_ADMIN', 'ADMIN'), [
 });
 
 // Admin: Cancel / Delete an invitation
-router.delete('/:orgId/:inviteId', requireOrgAccess, requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
+router.delete('/:orgId/:inviteId', authenticateToken, requireOrgAccess, requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
   const prisma = req.app.get('prisma');
   const { inviteId } = req.params;
 
