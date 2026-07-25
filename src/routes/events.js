@@ -49,7 +49,18 @@ router.get('/:orgId', async (req, res) => {
   const { type, limit, offset } = req.query;
 
   try {
-    const where = { orgId, resource: 'event' };
+    let org = await prisma.organization.findFirst({
+      where: {
+        OR: [
+          { id: orgId },
+          { name: orgId },
+          { displayName: orgId }
+        ]
+      }
+    });
+
+    const targetOrgId = org ? org.id : orgId;
+    const where = { orgId: targetOrgId };
     if (type) {
       where.action = `event:${type}`;
     }
