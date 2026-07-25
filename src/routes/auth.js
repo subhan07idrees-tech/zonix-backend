@@ -86,13 +86,19 @@ router.post('/login', authLimiter, [
 
     console.log('[ZONIX Backend] Login request received for org:', orgId, 'username:', username);
     if (!orgId || orgId.trim() === '') {
-      if (username === 'superadmin') {
-        orgId = 'zonix-system';
-        fs.appendFileSync(require('path').join(__dirname, '..', 'debug.log'), `Defaulted orgId to 'zonix-system'\n`);
+      const userMatch = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { username: username },
+            { email: username }
+          ]
+        }
+      });
+      if (userMatch) {
+        orgId = userMatch.orgId;
+        console.log('[ZONIX Backend] Auto-resolved orgId for user', username, '->', orgId);
       } else {
-        fs.appendFileSync(require('path').join(__dirname, '..', 'debug.log'), `Rejected: Org ID required\n`);
-        await logLoginAttempt(prisma, { orgId, username, success: false, error: 'Organization ID required', ipAddress });
-        return res.status(400).json({ error: 'Organization ID required' });
+        orgId = 'zonix-system';
       }
     }
 
