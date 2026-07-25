@@ -105,6 +105,7 @@ router.post('/login', authLimiter, [
     const org = await prisma.organization.findFirst({
       where: {
         OR: [
+          { id: orgId },
           { name: orgId },
           { displayName: orgId }
         ]
