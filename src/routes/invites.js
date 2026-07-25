@@ -170,8 +170,17 @@ router.post('/:orgId', authenticateToken, requireOrgAccess, requireRole('SUPER_A
   const { email, role = 'DISPATCHER', maxTabs = 5 } = req.body;
 
   try {
-    const org = await prisma.organization.findUnique({ where: { id: orgId } });
+    let org = await prisma.organization.findFirst({
+      where: {
+        OR: [
+          { id: orgId },
+          { name: orgId },
+          { displayName: orgId }
+        ]
+      }
+    });
     if (!org) return res.status(404).json({ error: 'Organization not found' });
+    const resolvedOrgId = org.id;
 
     // Generate 64-char hex token
     const token = crypto.randomBytes(32).toString('hex');
@@ -180,7 +189,7 @@ router.post('/:orgId', authenticateToken, requireOrgAccess, requireRole('SUPER_A
     // Create pending invite for this email in this org
     const invite = await prisma.userInvite.create({
       data: {
-        orgId,
+        orgId: resolvedOrgId,
         email: email.toLowerCase().trim(),
         role,
         maxTabs,
@@ -233,6 +242,74 @@ router.delete('/:orgId/:inviteId', authenticateToken, requireOrgAccess, requireR
   } catch (err) {
     console.error('[Invite] Delete Error:', err.message);
     res.status(500).json({ error: 'Failed to cancel invitation' });
+  }
+});
+
+// Admin: Alias for sending invite via POST /api/invites/send
+router.post('/send', authenticateToken, requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
+  const prisma = req.app.get('prisma');
+  const { email, role = 'DISPATCHER', maxTabs = 5, orgId } = req.body;
+
+  try {
+    let org = await prisma.organization.findFirst({
+      where: {
+        OR: [
+          { id: orgId },
+          { name: orgId },
+          { displayName: orgId }
+        ]
+      }
+    });
+
+    if (!org && req.user.orgId) {
+      org = await prisma.organization.findUnique({ where: { id: req.user.orgId } });
+    }
+
+    if (!org) return res.status(404).json({ error: 'Organization not found. Please select an Organization.' });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+
+    const invite = await prisma.userInvite.create({
+      data: {
+        orgId: org.id,
+        email: email.toLowerCase().trim(),
+        role,
+        maxTabs: parseInt(maxTabs) || 5,
+        token,
+        status: 'PENDING',
+        expiresAt,
+        invitedBy: req.user.userId || req.user.id || 'system'
+      }
+    });
+
+    const webDomain = process.env.PUBLIC_WEB_URL || 'https://thezonix.com';
+    const inviteLink = `${webDomain}/join.html?token=${token}`;
+
+    const emailResult = await sendInviteEmail({
+      email: invite.email,
+      orgName: org.displayName || org.name,
+      role: invite.role,
+      inviteLink,
+      expiresAt: invite.expiresAt
+    });
+
+    res.status(201).json({
+      success: true,
+      invite: {
+        id: invite.id,
+        email: invite.email,
+        role: invite.role,
+        maxTabs: invite.maxTabs,
+        token: invite.token,
+        inviteLink,
+        expiresAt: invite.expiresAt,
+        emailSent: emailResult.success
+      }
+    });
+  } catch (err) {
+    console.error('[Invite] Send Error:', err.message);
+    res.status(500).json({ error: 'Failed to send invitation' });
   }
 });
 
