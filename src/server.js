@@ -317,11 +317,20 @@ async function startServer() {
       setInterval(async () => {
         try {
           await prisma.$queryRaw`SELECT 1`;
-          console.log('[DB] Keep-warm query executed successfully');
         } catch (err) {
           console.error('[DB] Keep-warm ping failed:', err.message);
         }
       }, 4 * 60 * 1000);
+
+      // Memory Monitor Interval
+      setInterval(() => {
+        const mem = process.memoryUsage();
+        const rssMB = Math.round(mem.rss / 1024 / 1024);
+        if (rssMB > 350 && global.gc) {
+          console.log(`[Memory] High RAM detected (${rssMB}MB), executing GC`);
+          global.gc();
+        }
+      }, 2 * 60 * 1000);
     });
   } catch (err) {
     console.error('[DB] Connection failed:', err.message);

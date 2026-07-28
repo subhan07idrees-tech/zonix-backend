@@ -80,10 +80,6 @@ router.post('/login', authLimiter, [
   const ipAddress = (req.headers['x-forwarded-for'] || req.ip || req.connection?.remoteAddress || '').split(',')[0].trim();
 
   try {
-    const fs = require('fs');
-    const logMsg = `${new Date().toISOString()} - Login Request: orgId='${orgId}', username='${username}'\n`;
-    fs.appendFileSync(require('path').join(__dirname, '..', 'debug.log'), logMsg);
-
     console.log('[ZONIX Backend] Login request received for org:', orgId, 'username:', username);
     if (!orgId || orgId.trim() === '') {
       const userMatch = await prisma.user.findFirst({
@@ -112,12 +108,10 @@ router.post('/login', authLimiter, [
       }
     });
     if (!org) {
-      fs.appendFileSync(require('path').join(__dirname, '..', 'debug.log'), `Rejected: Organization '${orgId}' not found in DB\n`);
       console.log('[ZONIX Backend] Organization not found:', orgId);
       await logLoginAttempt(prisma, { orgId, username, success: false, error: 'Organization not found', ipAddress });
       return res.status(404).json({ error: 'Organization not found' });
     }
-    fs.appendFileSync(require('path').join(__dirname, '..', 'debug.log'), `Found organization UUID: ${org.id}\n`);
     console.log('[ZONIX Backend] Organization found:', org.name, 'UUID:', org.id);
     if (org.status !== 'ACTIVE') {
       await logLoginAttempt(prisma, { orgId: org.id, username, success: false, error: 'Organization is suspended', ipAddress });
