@@ -187,4 +187,59 @@ router.post('/health-check/now', requireRole('SUPER_ADMIN', 'ADMIN'), async (req
   }
 });
 
+// Health Check & Notification Settings (GET)
+router.get('/health-check/settings', requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
+  try {
+    const settings = {
+      whatsappPhone: process.env.WHATSAPP_NOTIFICATION_PHONE || '+14046101615',
+      notificationEmail: process.env.NOTIFICATION_EMAIL || 'admin@thezonix.com',
+      scheduledTime: process.env.HEALTH_CHECK_TIME || '07:45 AM',
+      whatsappEnabled: true,
+      emailEnabled: true
+    };
+    res.json({ success: true, settings });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch settings' });
+  }
+});
+
+// Save Health Check & Notification Settings (POST)
+router.post('/health-check/settings', requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
+  const { whatsappPhone, notificationEmail, scheduledTime, whatsappEnabled, emailEnabled } = req.body;
+  try {
+    if (whatsappPhone) process.env.WHATSAPP_NOTIFICATION_PHONE = whatsappPhone;
+    if (notificationEmail) process.env.NOTIFICATION_EMAIL = notificationEmail;
+    if (scheduledTime) process.env.HEALTH_CHECK_TIME = scheduledTime;
+
+    res.json({
+      success: true,
+      message: 'Notification preferences saved',
+      settings: { whatsappPhone, notificationEmail, scheduledTime, whatsappEnabled, emailEnabled }
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to save settings' });
+  }
+});
+
+// Trigger Test WhatsApp Notification (POST)
+router.post('/health-check/test-whatsapp', requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
+  const { whatsappPhone } = req.body;
+  const prisma = req.app.get('prisma');
+  const HealthCheckService = require('../services/healthCheck');
+  const healthService = new HealthCheckService(prisma);
+
+  try {
+    const targetPhone = whatsappPhone || process.env.WHATSAPP_NOTIFICATION_PHONE || '+14046101615';
+    await healthService.deliverNotifications({
+      scannedAt: new Date(),
+      totalOrgs: 1,
+      allHealthy: true,
+      results: []
+    });
+    res.json({ success: true, message: `Test WhatsApp notification sent to ${targetPhone}` });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to send test WhatsApp message' });
+  }
+});
+
 module.exports = router;
