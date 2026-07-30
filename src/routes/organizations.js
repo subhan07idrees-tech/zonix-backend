@@ -156,4 +156,35 @@ router.delete('/:orgId', requireRole('SUPER_ADMIN'), requireOrgAccess, async (re
   }
 });
 
+// 1-Click Session Restore Endpoint (<0.5s)
+router.post('/:orgId/vault/restore', requireRole('SUPER_ADMIN', 'ADMIN'), requireOrgAccess, async (req, res) => {
+  const prisma = req.app.get('prisma');
+  const { orgId } = req.params;
+  const SessionVaultService = require('../services/sessionVault');
+  const vaultService = new SessionVaultService(prisma);
+
+  try {
+    const result = await vaultService.restoreVaultSnapshot(orgId);
+    res.json(result);
+  } catch (err) {
+    console.error('[Org] Vault restore error:', err.message);
+    res.status(500).json({ error: 'Failed to restore session vault' });
+  }
+});
+
+// Manual Pre-Shift Health Check Trigger Endpoint
+router.post('/health-check/now', requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
+  const prisma = req.app.get('prisma');
+  const HealthCheckService = require('../services/healthCheck');
+  const healthService = new HealthCheckService(prisma);
+
+  try {
+    const report = await healthService.runPreShiftHealthCheck();
+    res.json({ success: true, report });
+  } catch (err) {
+    console.error('[Org] Manual health check error:', err.message);
+    res.status(500).json({ error: 'Failed to run health check' });
+  }
+});
+
 module.exports = router;
