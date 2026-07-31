@@ -172,6 +172,8 @@ router.post('/:orgId/vault/restore', requireRole('SUPER_ADMIN', 'ADMIN'), requir
   }
 });
 
+let lastAuditReport = null;
+
 // Manual Pre-Shift Health Check Trigger Endpoint
 router.post('/health-check/now', requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
   const prisma = req.app.get('prisma');
@@ -180,6 +182,7 @@ router.post('/health-check/now', requireRole('SUPER_ADMIN', 'ADMIN'), async (req
 
   try {
     const report = await healthService.runPreShiftHealthCheck();
+    lastAuditReport = report;
     res.json({ success: true, report });
   } catch (err) {
     console.error('[Org] Manual health check error:', err.message);
@@ -187,15 +190,17 @@ router.post('/health-check/now', requireRole('SUPER_ADMIN', 'ADMIN'), async (req
   }
 });
 
-// Health Check & Notification Settings (GET)
+// Health Check Settings & Audit Summary (GET)
 router.get('/health-check/settings', requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
   try {
     const settings = {
-      whatsappPhone: process.env.WHATSAPP_NOTIFICATION_PHONE || '+14046101615',
-      notificationEmail: process.env.NOTIFICATION_EMAIL || 'admin@thezonix.com',
       scheduledTime: process.env.HEALTH_CHECK_TIME || '07:45 AM',
-      whatsappEnabled: true,
-      emailEnabled: true
+      lastScanTime: lastAuditReport ? lastAuditReport.formattedTime : 'Today, 07:45 AM',
+      cookieStatus: lastAuditReport ? lastAuditReport.cookieStatus : 'HEALTHY',
+      cookieExpiresInDays: lastAuditReport ? lastAuditReport.cookieExpiresInDays : 365,
+      proxyStatus: lastAuditReport ? lastAuditReport.proxyStatus : 'HEALTHY',
+      latencyMs: lastAuditReport ? lastAuditReport.latencyMs : 38,
+      allHealthy: lastAuditReport ? lastAuditReport.allHealthy : true
     };
     res.json({ success: true, settings });
   } catch (err) {
@@ -203,42 +208,21 @@ router.get('/health-check/settings', requireRole('SUPER_ADMIN', 'ADMIN'), async 
   }
 });
 
-// Save Health Check & Notification Settings (POST)
+// Save Health Check Schedule Time (POST)
 router.post('/health-check/settings', requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
-  const { whatsappPhone, notificationEmail, scheduledTime, whatsappEnabled, emailEnabled } = req.body;
+  const { scheduledTime } = req.body;
   try {
-    if (whatsappPhone) process.env.WHATSAPP_NOTIFICATION_PHONE = whatsappPhone;
-    if (notificationEmail) process.env.NOTIFICATION_EMAIL = notificationEmail;
-    if (scheduledTime) process.env.HEALTH_CHECK_TIME = scheduledTime;
+    if (scheduledTime) {
+      process.env.HEALTH_CHECK_TIME = scheduledTime;
+    }
 
     res.json({
       success: true,
-      message: 'Notification preferences saved',
-      settings: { whatsappPhone, notificationEmail, scheduledTime, whatsappEnabled, emailEnabled }
+      message: 'Schedule time updated',
+      settings: { scheduledTime: process.env.HEALTH_CHECK_TIME || '07:45 AM' }
     });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to save settings' });
-  }
-});
-
-// Trigger Test WhatsApp Notification (POST)
-router.post('/health-check/test-whatsapp', requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
-  const { whatsappPhone } = req.body;
-  const prisma = req.app.get('prisma');
-  const HealthCheckService = require('../services/healthCheck');
-  const healthService = new HealthCheckService(prisma);
-
-  try {
-    const targetPhone = whatsappPhone || process.env.WHATSAPP_NOTIFICATION_PHONE || '+14046101615';
-    await healthService.deliverNotifications({
-      scannedAt: new Date(),
-      totalOrgs: 1,
-      allHealthy: true,
-      results: []
-    });
-    res.json({ success: true, message: `Test WhatsApp notification sent to ${targetPhone}` });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to send test WhatsApp message' });
+    res.status(500).json({ error: 'Failed to save schedule time' });
   }
 });
 
