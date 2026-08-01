@@ -1,6 +1,7 @@
 const nodemailer = require('nodemailer');
+const RESEND_API_URL = 'https://api.resend.com/emails';
 
-// 1. Invites Transporter (invites.zonix@gmail.com)
+// Gmail SMTP Fallback Transporters
 const inviteTransporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -9,7 +10,6 @@ const inviteTransporter = nodemailer.createTransport({
   }
 });
 
-// 2. Customer Support & System Broadcast Transporter (support.zonix@gmail.com)
 const supportTransporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -19,7 +19,7 @@ const supportTransporter = nodemailer.createTransport({
 });
 
 /**
- * Send Dispatcher Onboarding Invitation from invites.zonix@gmail.com
+ * Send Email with Resend API (invites@thezonix.com) + Gmail Fallback
  */
 async function sendInviteEmail({ email, orgName, role, inviteLink, expiresAt }) {
   const formattedExpiry = new Date(expiresAt).toLocaleString('en-US', {
@@ -103,6 +103,34 @@ async function sendInviteEmail({ email, orgName, role, inviteLink, expiresAt }) 
 </html>
   `;
 
+  // Try Primary Resend API (invites@thezonix.com)
+  const apiKey = process.env.RESEND_API_KEY;
+  if (apiKey) {
+    try {
+      const res = await fetch(RESEND_API_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: 'ZONIX Invites <invites@thezonix.com>',
+          to: [email],
+          subject: `You've been invited to join ${orgName} on ZONIX`,
+          html
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.id) {
+        console.log(`[EmailService] Sent invitation via Primary Domain invites@thezonix.com (ID: ${data.id})`);
+        return { success: true, emailId: data.id };
+      }
+    } catch (e) {
+      console.warn('[EmailService] Resend API attempt failed, switching to Gmail SMTP fallback...');
+    }
+  }
+
+  // Fallback to Gmail SMTP (invites.zonix@gmail.com)
   try {
     const info = await inviteTransporter.sendMail({
       from: '"ZONIX Invites" <invites.zonix@gmail.com>',
@@ -110,7 +138,7 @@ async function sendInviteEmail({ email, orgName, role, inviteLink, expiresAt }) 
       subject: `You've been invited to join ${orgName} on ZONIX`,
       html
     });
-    console.log(`[EmailService] Onboarding invitation sent from invites.zonix@gmail.com to ${email} (MessageId: ${info.messageId})`);
+    console.log(`[EmailService] Invitation sent via Gmail fallback to ${email} (MessageId: ${info.messageId})`);
     return { success: true, emailId: info.messageId };
   } catch (err) {
     console.error('[EmailService] Gmail Invite transport error:', err.message);
@@ -119,7 +147,7 @@ async function sendInviteEmail({ email, orgName, role, inviteLink, expiresAt }) 
 }
 
 /**
- * Send Customer Support Ticket / In-App Bug Report to support.zonix@gmail.com
+ * Send Customer Support Ticket to support.zonix@gmail.com & support@thezonix.com
  */
 async function sendSupportTicket({ userEmail, username, orgName, subject, message, telemetry }) {
   const formattedTime = new Date().toLocaleString('en-US', { timeZoneName: 'short' });
@@ -141,7 +169,7 @@ async function sendSupportTicket({ userEmail, username, orgName, subject, messag
 
     <div style="background: #090a0f; border: 1px solid #1e293b; border-radius: 10px; padding: 12px; font-family: monospace; font-size: 11px; color: #38bdf8;">
       <strong>💻 AUTO-ATTACHED TELEMETRY DIAGNOSTICS:</strong><br>
-      • App Version: ${telemetry?.appVersion || 'v1.8.2'}<br>
+      • App Version: ${telemetry?.appVersion || 'v1.8.3'}<br>
       • User Role: ${telemetry?.role || 'DISPATCHER'}<br>
       • OS Version: ${telemetry?.os || 'Windows 10/11'}<br>
       • Proxy Latency: ${telemetry?.latency || '38ms'}<br>
@@ -152,6 +180,35 @@ async function sendSupportTicket({ userEmail, username, orgName, subject, messag
 </html>
   `;
 
+  // Try Primary Resend API (support@thezonix.com)
+  const apiKey = process.env.RESEND_API_KEY;
+  if (apiKey) {
+    try {
+      const res = await fetch(RESEND_API_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: 'ZONIX Support <support@thezonix.com>',
+          to: ['support.zonix@gmail.com'],
+          reply_to: userEmail,
+          subject: `[SUPPORT TICKET] ${subject} - ${orgName}`,
+          html
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.id) {
+        console.log(`[EmailService] Support ticket delivered via Domain support@thezonix.com (ID: ${data.id})`);
+        return { success: true, emailId: data.id };
+      }
+    } catch (e) {
+      console.warn('[EmailService] Resend API support ticket failed, fallback to Gmail...');
+    }
+  }
+
+  // Fallback Gmail SMTP
   try {
     const info = await supportTransporter.sendMail({
       from: '"ZONIX Support Engine" <support.zonix@gmail.com>',
@@ -169,7 +226,7 @@ async function sendSupportTicket({ userEmail, username, orgName, subject, messag
 }
 
 /**
- * Send System Maintenance / Update Announcement from support.zonix@gmail.com to Users
+ * Send System Maintenance / Update Announcement to Users
  */
 async function sendBroadcastEmail({ recipients, subject, announcementText }) {
   const html = `
@@ -182,12 +239,40 @@ async function sendBroadcastEmail({ recipients, subject, announcementText }) {
       <h3 style="color: #ffffff; margin-top: 0;">${subject}</h3>
       <p style="white-space: pre-wrap; color: #d1d5db; font-size: 14px; line-height: 1.6;">${announcementText}</p>
     </div>
-    <p style="font-size: 11px; color: #6b7280; text-align: center;">This is an official system announcement from ZONIX Support.</p>
+    <p style="font-size: 11px; color: #6b7280; text-align: center;">This is an official system announcement from ZONIX Support Team.</p>
   </div>
 </body>
 </html>
   `;
 
+  // Try Primary Resend API (support@thezonix.com)
+  const apiKey = process.env.RESEND_API_KEY;
+  if (apiKey) {
+    try {
+      const res = await fetch(RESEND_API_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: 'ZONIX Support <support@thezonix.com>',
+          to: recipients,
+          subject: `[ZONIX Notice] ${subject}`,
+          html
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.id) {
+        console.log(`[EmailService] System announcement broadcasted via domain support@thezonix.com to ${recipients.length} users (ID: ${data.id})`);
+        return { success: true, emailId: data.id };
+      }
+    } catch (e) {
+      console.warn('[EmailService] Resend broadcast failed, fallback to Gmail...');
+    }
+  }
+
+  // Fallback Gmail SMTP
   try {
     const info = await supportTransporter.sendMail({
       from: '"ZONIX Support" <support.zonix@gmail.com>',
@@ -195,7 +280,7 @@ async function sendBroadcastEmail({ recipients, subject, announcementText }) {
       subject: `[ZONIX Notice] ${subject}`,
       html
     });
-    console.log(`[EmailService] System announcement broadcasted to ${recipients.length} recipients from support.zonix@gmail.com`);
+    console.log(`[EmailService] System announcement broadcasted via Gmail to ${recipients.length} recipients`);
     return { success: true, emailId: info.messageId };
   } catch (err) {
     console.error('[EmailService] Broadcast email error:', err.message);
