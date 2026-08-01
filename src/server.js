@@ -75,6 +75,8 @@ app.use(express.urlencoded({ extended: true }));
 
 app.set('prisma', prisma);
 
+const supportRoutes = require('./routes/support');
+
 app.use('/api/auth', authRoutes);
 app.use('/api/organizations', authenticateToken, orgRoutes);
 app.use('/api/users', authenticateToken, userRoutes);
@@ -85,6 +87,7 @@ app.use('/api/events', authenticateToken, eventRoutes);
 app.use('/api/cookies', authenticateToken, cookieRoutes);
 app.use('/api/dashboard', authenticateToken, dashboardRoutes);
 app.use('/api/invites', inviteRoutes);
+app.use('/api/support', authenticateToken, supportRoutes);
 
 app.use(auditMiddleware);
 
