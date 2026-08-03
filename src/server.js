@@ -21,7 +21,14 @@ const inviteRoutes = require('./routes/invites');
 const { authenticateToken } = require('./middleware/auth');
 const { auditMiddleware } = require('./middleware/audit');
 
+// Ensure Database URL has connection pool tuning for PgBouncer & Supabase
+let dbUrl = process.env.DATABASE_URL || '';
+if (dbUrl.includes('pgbouncer=true') && !dbUrl.includes('connection_limit')) {
+  dbUrl += '&connection_limit=30&pool_timeout=30';
+}
+
 const prisma = new PrismaClient({
+  datasources: dbUrl ? { db: { url: dbUrl } } : undefined,
   log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
 });
 
