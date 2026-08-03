@@ -40,6 +40,11 @@ router.post('/store', requireOrgAccess, async (req, res) => {
     });
 
     res.json({ success: true, id: masterCookie.id, hash });
+
+    // Trigger instant garbage collection to free large JSON string buffer
+    if (global.gc) {
+      setTimeout(() => global.gc(), 100);
+    }
   } catch (err) {
     console.error('[Cookies] Store error:', err.message);
     res.status(500).json({ error: 'Failed to store cookies' });
