@@ -362,6 +362,18 @@ process.on('SIGINT', async () => {
   server.close(() => process.exit(0));
 });
 
+// Periodic RAM Memory Guard (Runs every 10 minutes to prevent Render OOM restarts)
+setInterval(() => {
+  const memoryUsage = process.memoryUsage();
+  const heapUsedMB = Math.round(memoryUsage.heapUsed / 1024 / 1024);
+  const rssMB = Math.round(memoryUsage.rss / 1024 / 1024);
+
+  if (rssMB > 320 && global.gc) {
+    console.log(`[MemoryGuard] Spike detected (RSS: ${rssMB}MB, Heap: ${heapUsedMB}MB). Triggering GC cleanup...`);
+    global.gc();
+  }
+}, 10 * 60 * 1000);
+
 startServer();
 
 module.exports = { app, server, prisma, wss, broadcastToOrg, broadcastToAll, broadcastSessions, sendSessionsToClient, forceLogoutUser };
