@@ -4,6 +4,50 @@ const { requireRole, requireOrgAccess } = require('../middleware/auth');
 
 const router = express.Router();
 
+router.get('/metrics/overview', async (req, res) => {
+  const prisma = req.app.get('prisma');
+  const orgId = req.user.role === 'SUPER_ADMIN' ? null : req.user.orgId;
+
+  try {
+    const orgFilter = orgId ? { orgId } : {};
+
+    const [
+      totalOrgs,
+      activeOrgs,
+      totalUsers,
+      activeUsers,
+      activeSessions,
+      totalSessions,
+      activeProxies,
+      totalProxies
+    ] = await Promise.all([
+      prisma.organization.count(orgId ? { where: { id: orgId } } : {}),
+      prisma.organization.count({ where: { ...orgFilter, status: 'ACTIVE' } }),
+      prisma.user.count({ where: orgFilter }),
+      prisma.user.count({ where: { ...orgFilter, status: 'ACTIVE' } }),
+      prisma.session.count({ where: { ...orgFilter, status: 'ACTIVE' } }),
+      prisma.session.count({ where: orgFilter }),
+      prisma.proxyNode.count({ where: { ...orgFilter, status: 'ACTIVE' } }),
+      prisma.proxyNode.count({ where: orgFilter })
+    ]);
+
+    res.json({
+      totalOrgs,
+      activeOrgs,
+      totalUsers,
+      activeUsers,
+      activeSessions,
+      totalSessions,
+      activeProxies,
+      totalProxies,
+      systemHealth: 100
+    });
+  } catch (err) {
+    console.error('[Org] Metrics overview error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch metrics overview' });
+  }
+});
+
 router.get('/', requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
   const prisma = req.app.get('prisma');
 

@@ -195,4 +195,78 @@ router.delete('/:orgId/:userId', requireOrgAccess, requireRole('SUPER_ADMIN', 'A
   }
 });
 
+// Single-param fallback routes for frontend convenience
+router.patch('/:userId/status', async (req, res) => {
+  const prisma = req.app.get('prisma');
+  const { userId } = req.params;
+  const { status } = req.body;
+
+  try {
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: { status },
+      select: { id: true, username: true, status: true }
+    });
+    res.json({ user: updated });
+  } catch (err) {
+    console.error('[Users] Status update error:', err.message);
+    res.status(500).json({ error: 'Failed to update user status' });
+  }
+});
+
+router.put('/:userId', async (req, res) => {
+  const prisma = req.app.get('prisma');
+  const { userId } = req.params;
+  const { role, status, email, password, maxTabs } = req.body;
+
+  try {
+    let passwordHash = undefined;
+    if (password) {
+      const bcrypt = require('bcryptjs');
+      passwordHash = await bcrypt.hash(password, 12);
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(role && { role }),
+        ...(status && { status }),
+        ...(email !== undefined && { email }),
+        ...(maxTabs !== undefined && { maxTabs: parseInt(maxTabs) }),
+        ...(passwordHash && { passwordHash })
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: true,
+        status: true,
+        maxTabs: true,
+        lastLoginAt: true
+      }
+    });
+
+    res.json({ user: updated });
+  } catch (err) {
+    console.error('[Users] Update error:', err.message);
+    res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
+router.delete('/:userId', async (req, res) => {
+  const prisma = req.app.get('prisma');
+  const { userId } = req.params;
+
+  try {
+    await prisma.user.delete({
+      where: { id: userId }
+    });
+
+    res.json({ success: true, message: 'User deleted' });
+  } catch (err) {
+    console.error('[Users] Delete error:', err.message);
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
 module.exports = router;
