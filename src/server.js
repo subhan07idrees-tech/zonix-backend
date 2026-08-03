@@ -98,9 +98,16 @@ app.use('/api/support', authenticateToken, supportRoutes);
 
 app.use(auditMiddleware);
 
-app.get('/api/health', async (req, res) => {
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'operational',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/api/health/metrics', async (req, res) => {
   try {
-    await prisma.$queryRaw`SELECT 1`;
     const orgCount = await prisma.organization.count();
     const activeSessions = await prisma.session.count({ where: { status: 'ACTIVE' } });
     const activeUsers = await prisma.user.count({ where: { status: 'ACTIVE' } });
@@ -109,14 +116,9 @@ app.get('/api/health', async (req, res) => {
       status: 'operational',
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
-      metrics: {
-        organizations: orgCount,
-        activeSessions,
-        activeUsers
-      }
+      metrics: { organizations: orgCount, activeSessions, activeUsers }
     });
   } catch (err) {
-    console.error('[Health] Check failed:', err.message);
     res.status(503).json({ status: 'degraded', error: err.message });
   }
 });
