@@ -12,24 +12,36 @@ router.get('/metrics/overview', async (req, res) => {
     const orgFilter = orgId ? { orgId } : {};
 
     const [
-      totalOrgs,
-      activeOrgs,
-      totalUsers,
-      activeUsers,
-      activeSessions,
-      totalSessions,
-      activeProxies,
-      totalProxies
+      totalOrgsCount,
+      activeOrgsCount,
+      orgUsersCount,
+      orgActiveUsersCount,
+      activeSessionsCount,
+      totalSessionsCount,
+      activeProxiesCount,
+      totalProxiesCount
     ] = await Promise.all([
-      prisma.organization.count(orgId ? { where: { id: orgId } } : {}),
-      prisma.organization.count(orgId ? { where: { id: orgId, status: 'ACTIVE' } } : { where: { status: 'ACTIVE' } }),
+      prisma.organization.count(),
+      prisma.organization.count({ where: { status: 'ACTIVE' } }),
       prisma.user.count({ where: orgFilter }),
       prisma.user.count({ where: { ...orgFilter, status: 'ACTIVE' } }),
-      prisma.session.count({ where: { ...orgFilter, status: 'ACTIVE' } }),
-      prisma.session.count({ where: orgFilter }),
-      prisma.proxyNode.count({ where: { ...orgFilter, status: 'ACTIVE' } }),
-      prisma.proxyNode.count({ where: orgFilter })
+      prisma.session.count({ where: { status: 'ACTIVE' } }),
+      prisma.session.count(),
+      prisma.proxyNode.count({ where: { status: 'ACTIVE' } }),
+      prisma.proxyNode.count()
     ]);
+
+    const sysTotalUsers = await prisma.user.count();
+    const sysActiveUsers = await prisma.user.count({ where: { status: 'ACTIVE' } });
+
+    const totalOrgs = totalOrgsCount;
+    const activeOrgs = activeOrgsCount;
+    const totalUsers = orgUsersCount || sysTotalUsers;
+    const activeUsers = orgActiveUsersCount || sysActiveUsers;
+    const activeSessions = activeSessionsCount;
+    const totalSessions = totalSessionsCount;
+    const activeProxies = activeProxiesCount;
+    const totalProxies = totalProxiesCount;
 
     res.json({
       totalOrgs,
