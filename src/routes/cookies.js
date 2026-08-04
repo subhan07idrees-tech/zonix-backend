@@ -104,7 +104,9 @@ router.get('/retrieve/:orgId/:userId/:targetDomain', requireOrgAccess, async (re
       cookies, 
       localStorage: localStorageData, 
       hash: masterCookie.hash, 
-      capturedAt: masterCookie.capturedAt 
+      capturedAt: masterCookie.capturedAt || masterCookie.updatedAt || masterCookie.createdAt,
+      updatedAt: masterCookie.updatedAt,
+      createdAt: masterCookie.createdAt
     });
   } catch (err) {
     console.error('[Cookies] Retrieve error:', err.message);

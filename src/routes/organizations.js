@@ -22,7 +22,7 @@ router.get('/metrics/overview', async (req, res) => {
       totalProxies
     ] = await Promise.all([
       prisma.organization.count(orgId ? { where: { id: orgId } } : {}),
-      prisma.organization.count({ where: { ...orgFilter, status: 'ACTIVE' } }),
+      prisma.organization.count(orgId ? { where: { id: orgId, status: 'ACTIVE' } } : { where: { status: 'ACTIVE' } }),
       prisma.user.count({ where: orgFilter }),
       prisma.user.count({ where: { ...orgFilter, status: 'ACTIVE' } }),
       prisma.session.count({ where: { ...orgFilter, status: 'ACTIVE' } }),
