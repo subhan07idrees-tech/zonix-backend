@@ -72,9 +72,25 @@ router.get('/retrieve/:orgId/:userId/:targetDomain', requireOrgAccess, async (re
     }
 
     if (!masterCookie) {
-      // Fallback 2: Fall back to the most recently updated session for this org and domain
+      // Fallback 2: Domain alias fallback (e.g. www.dat.com vs one.dat.com vs dat.com)
+      const domainVariants = [targetDomain, 'one.dat.com', 'dat.com', 'www.dat.com'];
       masterCookie = await prisma.masterCookie.findFirst({
-        where: { orgId, targetDomain },
+        where: {
+          orgId,
+          targetDomain: { in: domainVariants },
+          OR: [
+            { userId },
+            { userId: 'system' }
+          ]
+        },
+        orderBy: { updatedAt: 'desc' }
+      });
+    }
+
+    if (!masterCookie) {
+      // Fallback 3: Fall back to the most recently updated session for this org regardless of domain
+      masterCookie = await prisma.masterCookie.findFirst({
+        where: { orgId },
         orderBy: { updatedAt: 'desc' }
       });
     }
