@@ -6,7 +6,8 @@ const router = express.Router();
 
 router.get('/metrics/overview', async (req, res) => {
   const prisma = req.app.get('prisma');
-  const orgId = req.user.role === 'SUPER_ADMIN' ? null : req.user.orgId;
+  const isSuperAdmin = req.user.role === 'SUPER_ADMIN';
+  const orgId = isSuperAdmin ? null : req.user.orgId;
 
   try {
     const orgFilter = orgId ? { orgId } : {};
@@ -21,23 +22,20 @@ router.get('/metrics/overview', async (req, res) => {
       activeProxiesCount,
       totalProxiesCount
     ] = await Promise.all([
-      prisma.organization.count(),
-      prisma.organization.count({ where: { status: 'ACTIVE' } }),
+      isSuperAdmin ? prisma.organization.count() : 1,
+      isSuperAdmin ? prisma.organization.count({ where: { status: 'ACTIVE' } }) : 1,
       prisma.user.count({ where: orgFilter }),
       prisma.user.count({ where: { ...orgFilter, status: 'ACTIVE' } }),
-      prisma.session.count({ where: { status: 'ACTIVE' } }),
-      prisma.session.count(),
-      prisma.proxyNode.count({ where: { status: 'ACTIVE' } }),
-      prisma.proxyNode.count()
+      prisma.session.count({ where: { ...orgFilter, status: 'ACTIVE' } }),
+      prisma.session.count({ where: orgFilter }),
+      prisma.proxyNode.count({ where: { ...orgFilter, status: 'ACTIVE' } }),
+      prisma.proxyNode.count({ where: orgFilter })
     ]);
 
-    const sysTotalUsers = await prisma.user.count();
-    const sysActiveUsers = await prisma.user.count({ where: { status: 'ACTIVE' } });
-
-    const totalOrgs = totalOrgsCount;
-    const activeOrgs = activeOrgsCount;
-    const totalUsers = orgUsersCount || sysTotalUsers;
-    const activeUsers = orgActiveUsersCount || sysActiveUsers;
+    const totalOrgs = isSuperAdmin ? totalOrgsCount : 1;
+    const activeOrgs = isSuperAdmin ? activeOrgsCount : 1;
+    const totalUsers = orgUsersCount;
+    const activeUsers = orgActiveUsersCount;
     const activeSessions = activeSessionsCount;
     const totalSessions = totalSessionsCount;
     const activeProxies = activeProxiesCount;
@@ -165,6 +163,7 @@ router.put('/:orgId', requireRole('SUPER_ADMIN', 'ADMIN'), requireOrgAccess, [
   const prisma = req.app.get('prisma');
   const { orgId } = req.params;
   const { displayName, status, maxUsers, maxSessions, maxTabs, targetUrl } = req.body;
+  const isSuperAdmin = req.user.role === 'SUPER_ADMIN';
 
   try {
     const org = await prisma.organization.findUnique({ where: { id: orgId } });
@@ -172,16 +171,22 @@ router.put('/:orgId', requireRole('SUPER_ADMIN', 'ADMIN'), requireOrgAccess, [
       return res.status(404).json({ error: 'Organization not found' });
     }
 
+    const updateData = {
+      ...(displayName && { displayName }),
+      ...(targetUrl !== undefined && { targetUrl })
+    };
+
+    // Only SUPER_ADMIN can edit maxUsers, maxSessions, maxTabs, and status!
+    if (isSuperAdmin) {
+      if (status) updateData.status = status;
+      if (maxUsers) updateData.maxUsers = maxUsers;
+      if (maxSessions) updateData.maxSessions = maxSessions;
+      if (maxTabs) updateData.maxTabs = maxTabs;
+    }
+
     const updated = await prisma.organization.update({
       where: { id: orgId },
-      data: {
-        ...(displayName && { displayName }),
-        ...(status && { status }),
-        ...(maxUsers && { maxUsers }),
-        ...(maxSessions && { maxSessions }),
-        ...(maxTabs && { maxTabs }),
-        ...(targetUrl !== undefined && { targetUrl })
-      }
+      data: updateData
     });
 
     res.json({ organization: updated });
