@@ -6,13 +6,12 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node --max-old-space-size=192 --optimize-for-size src/server.js",
-    "build": "node ./node_modules/prisma/build/index.js generate --schema=prisma/schema.prisma",
+    "build": "npx prisma generate --schema=prisma/schema.prisma",
     "migrate": "npx prisma migrate dev",
     "seed": "node prisma/seed.js"
   },
   "dependencies": {
-    "@prisma/client": "^6.17.1",
-    "prisma": "^6.17.1",
+    "@prisma/client": "^5.22.0",
     "bcryptjs": "^2.4.3",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
@@ -24,6 +23,7 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^9.0.3",
+    "prisma": "^5.22.0",
     "uuid": "^9.0.0",
     "ws": "^8.16.0"
   },
