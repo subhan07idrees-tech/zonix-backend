@@ -53,7 +53,7 @@ async function main() {
 
   const superAdminUser = await prisma.user.upsert({
     where: { orgId_username: { orgId: superAdminOrg.id, username: 'superadmin' } },
-    update: {},
+    update: { passwordHash: superAdminHash, status: 'ACTIVE' },
     create: {
       orgId: superAdminOrg.id,
       username: 'superadmin',
@@ -66,7 +66,7 @@ async function main() {
 
   const alphaAdmin = await prisma.user.upsert({
     where: { orgId_username: { orgId: alphaOrg.id, username: 'admin' } },
-    update: {},
+    update: { passwordHash: adminPasswordHash, status: 'ACTIVE' },
     create: {
       orgId: alphaOrg.id,
       username: 'admin',
@@ -79,7 +79,7 @@ async function main() {
 
   const alphaDispatcher1 = await prisma.user.upsert({
     where: { orgId_username: { orgId: alphaOrg.id, username: 'user.01' } },
-    update: {},
+    update: { passwordHash: dispatcherPasswordHash, status: 'ACTIVE' },
     create: {
       orgId: alphaOrg.id,
       username: 'user.01',
@@ -92,7 +92,7 @@ async function main() {
 
   const alphaDispatcher2 = await prisma.user.upsert({
     where: { orgId_username: { orgId: alphaOrg.id, username: 'user.02' } },
-    update: {},
+    update: { passwordHash: dispatcherPasswordHash, status: 'ACTIVE' },
     create: {
       orgId: alphaOrg.id,
       username: 'user.02',
@@ -105,7 +105,7 @@ async function main() {
 
   const betaAdmin = await prisma.user.upsert({
     where: { orgId_username: { orgId: betaOrg.id, username: 'manager' } },
-    update: {},
+    update: { passwordHash: adminPasswordHash, status: 'ACTIVE' },
     create: {
       orgId: betaOrg.id,
       username: 'manager',
@@ -118,7 +118,7 @@ async function main() {
 
   const betaDispatcher = await prisma.user.upsert({
     where: { orgId_username: { orgId: betaOrg.id, username: 'agent.s1' } },
-    update: {},
+    update: { passwordHash: dispatcherPasswordHash, status: 'ACTIVE' },
     create: {
       orgId: betaOrg.id,
       username: 'agent.s1',
