@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node --max-old-space-size=192 --optimize-for-size src/server.js",
-    "build": "npm install && npx prisma@5.22.0 generate --schema=prisma/schema.prisma",
+    "build": "npx prisma@5.22.0 generate --schema=prisma/schema.prisma",
     "migrate": "npx prisma migrate dev",
     "seed": "node prisma/seed.js"
   },
