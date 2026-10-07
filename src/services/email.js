@@ -260,7 +260,7 @@ Support: support@thezonix.com
  */
 async function sendSupportTicket({ userEmail, username, orgName, subject, message, telemetry }) {
   const formattedTime = new Date().toLocaleString('en-US', { timeZoneName: 'short' });
-  const recipientEmail = (userEmail && userEmail !== 'support.zonix@gmail.com') ? userEmail : 'superadmin@zonix.io';
+  const recipientEmail = (userEmail && !userEmail.includes('@zonix.io') && userEmail !== 'support.zonix@gmail.com') ? userEmail : 'subhan07idrees@gmail.com';
 
   const html = `
 <!DOCTYPE html>
