@@ -7,7 +7,16 @@ const { sendSupportTicket, sendBroadcastEmail } = require('../services/email');
  * POST /api/support/ticket
  */
 router.post('/ticket', async (req, res) => {
-  const { subject, message, telemetry, notifyAllUsers } = req.body;
+  const { 
+    subject, 
+    message, 
+    telemetry, 
+    notifyAllUsers, 
+    ticketType = 'SUPPORT', 
+    maintenanceWindow, 
+    audience = 'single' 
+  } = req.body;
+
   if (!subject || !message) {
     return res.status(400).json({ error: 'Subject and message are required' });
   }
@@ -18,9 +27,11 @@ router.post('/ticket', async (req, res) => {
     let userEmail = req.body.userEmail || req.user?.email;
     let username = req.user?.username || 'Dispatcher';
     let orgName = req.user?.orgName;
+    const userRole = req.user?.role || 'OPERATOR';
+    const userOrgId = req.user?.orgId;
 
     const userId = req.user?.userId || req.user?.id;
-    if (userId && (!userEmail || userEmail.includes('@zonix.io') || !orgName)) {
+    if (userId && (!userEmail || userEmail.includes('@zonix.io') || !orgName || !userOrgId)) {
       try {
         const dbUser = await prisma.user.findUnique({
           where: { id: userId },
@@ -43,43 +54,73 @@ router.post('/ticket', async (req, res) => {
     }
     orgName = orgName || 'ZONIX Organization';
 
-    // 1. Always deliver ticket to support.zonix@gmail.com
+    // Resolve target recipients based on audience
+    let recipients = [];
+
+    if (audience === 'org') {
+      // Find all users belonging to this user's organization
+      if (userOrgId) {
+        const orgUsers = await prisma.user.findMany({
+          where: { 
+            orgId: userOrgId, 
+            email: { not: null } 
+          },
+          select: { email: true }
+        });
+        recipients = orgUsers.map(u => u.email).filter(Boolean);
+      }
+    } else if (audience === 'all' || notifyAllUsers) {
+      // Fleet-wide (SuperAdmin or notifyAllUsers)
+      const allUsers = await prisma.user.findMany({
+        where: { email: { not: null } },
+        select: { email: true }
+      });
+      recipients = allUsers.map(u => u.email).filter(Boolean);
+    }
+
+    // Filter out dummy domains and deduplicate
+    recipients = [...new Set(recipients.filter(e => e && !e.includes('@zonix.io') && e !== 'support.zonix@gmail.com'))];
+
+    // If single user or no org users found, fallback to target user email
+    if (recipients.length === 0) {
+      recipients = [userEmail];
+    }
+
+    // Dispatch executive branded email
     const ticketResult = await sendSupportTicket({
+      recipients,
       userEmail,
       username,
       orgName,
       subject,
       message,
+      ticketType,
+      maintenanceWindow,
       telemetry
     });
 
-    let broadcastCount = 0;
-
-    // 2. If notifyAllUsers is enabled (or triggered by admin/report), broadcast to all registered users across ALL organizations
-    if (notifyAllUsers) {
-      const allUsers = await prisma.user.findMany({
-        where: { email: { not: null } },
-        select: { email: true }
-      });
-      const emailList = [...new Set(allUsers.map(u => u.email).filter(Boolean))];
-      
-      if (emailList.length > 0) {
-        await sendBroadcastEmail({
-          recipients: emailList,
-          subject: `[ZONIX Fleet Alert] ${subject}`,
-          announcementText: `Reported by ${username} (${orgName}):\n\n${message}`
-        });
-        broadcastCount = emailList.length;
-      }
-    }
-
     if (ticketResult.success) {
-      const deliveredTo = ticketResult.recipient || userEmail;
+      const count = ticketResult.recipients?.length || recipients.length;
+      let statusMsg = '';
+      if (ticketType === 'MAINTENANCE') {
+        statusMsg = count > 1 
+          ? `Maintenance advisory dispatched to ${count} users across ${orgName}.` 
+          : `Maintenance advisory delivered to ${recipients[0]}.`;
+      } else if (ticketType === 'ANNOUNCEMENT') {
+        statusMsg = count > 1 
+          ? `System announcement broadcasted to ${count} users.` 
+          : `System announcement delivered to ${recipients[0]}.`;
+      } else {
+        statusMsg = count > 1 
+          ? `Support ticket notification sent to ${count} users.` 
+          : `Support ticket delivered to ${recipients[0]}.`;
+      }
+
       res.json({
         success: true,
-        message: notifyAllUsers
-          ? `Support ticket confirmed & broadcasted to ${broadcastCount} users.`
-          : `Support ticket dispatched from support.zonix@gmail.com to ${deliveredTo}.`
+        message: statusMsg,
+        recipientCount: count,
+        recipients: ticketResult.recipients || recipients
       });
     } else {
       res.status(500).json({ error: ticketResult.error || 'Failed to deliver support ticket' });

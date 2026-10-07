@@ -256,47 +256,252 @@ Support: support@thezonix.com
 }
 
 /**
- * Send Customer Support Ticket to support.zonix@gmail.com & support@thezonix.com
+ * Build High-Deliverability, Executive-Grade Light HTML Email Template
+ * Matching Stripe / GitHub / Linear enterprise design system standard.
  */
-async function sendSupportTicket({ userEmail, username, orgName, subject, message, telemetry }) {
-  const formattedTime = new Date().toLocaleString('en-US', { timeZoneName: 'short' });
-  const recipientEmail = (userEmail && !userEmail.includes('@zonix.io') && userEmail !== 'support.zonix@gmail.com') ? userEmail : 'subhan07idrees@gmail.com';
+function buildExecutiveEmailHtml({
+  badgeText = 'SYSTEM ADVISORY',
+  badgeBg = '#eff6ff',
+  badgeBorder = '#bfdbfe',
+  badgeColor = '#1d4ed8',
+  heading,
+  subheading = 'Official operational dispatch from ZONIX Systems',
+  recipientName = 'Dispatcher',
+  orgName = 'ZONIX Organization',
+  message = '',
+  maintenanceWindow = null,
+  telemetry = null
+}) {
+  const formattedTime = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }) + ' UTC';
 
-  const html = `
+  return `
 <!DOCTYPE html>
-<html>
-<body style="background-color: #0b0f19; color: #e5e7eb; font-family: sans-serif; padding: 24px;">
-  <div style="max-width: 600px; margin: 0 auto; background: #111827; border: 1px solid #1f2937; border-radius: 16px; padding: 24px;">
-    <h2 style="color: #00F0FF; margin-top: 0;">💬 ZONIX Support Ticket Confirmation</h2>
-    <p>Hello <strong>${username}</strong>,</p>
-    <p>Your support ticket has been received and confirmed by the ZONIX Operations Team.</p>
-    <p><strong>Organization:</strong> ${orgName}</p>
-    <p><strong>Submitted At:</strong> ${formattedTime}</p>
-    
-    <div style="background: #0d1322; border: 1px solid #1e293b; border-radius: 10px; padding: 16px; margin: 16px 0;">
-      <h3 style="color: #ffffff; margin-top: 0;">Subject: ${subject}</h3>
-      <p style="white-space: pre-wrap; color: #9ca3af; font-size: 14px;">${message}</p>
-    </div>
-
-    <div style="background: #090a0f; border: 1px solid #1e293b; border-radius: 10px; padding: 12px; font-family: monospace; font-size: 11px; color: #38bdf8;">
-      <strong>💻 AUTO-ATTACHED TELEMETRY DIAGNOSTICS:</strong><br>
-      • App Version: ${telemetry?.appVersion || 'v1.9.5'}<br>
-      • User Role: ${telemetry?.userRole || telemetry?.role || 'DISPATCHER'}<br>
-      • OS Version: ${telemetry?.os || 'Windows 10/11'}<br>
-      • Proxy Latency: ${telemetry?.latency || '38ms'}<br>
-      • Target Domain: ${telemetry?.targetDomain || 'one.dat.com'}<br>
-      • Master Cookie Status: ${telemetry?.cookieStatus || 'OPERATIONAL'}
-    </div>
-
-    <p style="margin-top: 20px; font-size: 12px; color: #64748b;">
-      Sent from ZONIX Support Engine (<a href="mailto:support.zonix@gmail.com" style="color: #38bdf8;">support.zonix@gmail.com</a>)
-    </p>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>${heading}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+  <!-- Preheader preview text for inbox snippet -->
+  <div style="display: none; font-size: 1px; color: #ffffff; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
+    ${heading} • ${message.replace(/\s+/g, ' ').substring(0, 110)}...
   </div>
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f8fafc; padding: 40px 12px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card Container -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 560px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);">
+          
+          <!-- Brand Header -->
+          <tr>
+            <td style="padding: 24px 32px; border-bottom: 1px solid #f1f5f9; background-color: #ffffff;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td>
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td style="vertical-align: middle; padding-right: 12px;">
+                          <div style="width: 32px; height: 32px; background: #0f172a; border-radius: 8px; text-align: center; line-height: 32px; color: #ffffff; font-weight: 800; font-size: 16px; font-family: monospace;">Z</div>
+                        </td>
+                        <td style="vertical-align: middle;">
+                          <span style="font-size: 16px; font-weight: 800; letter-spacing: 0.5px; color: #0f172a; display: block; line-height: 1.2;">ZONIX</span>
+                          <span style="font-size: 11px; color: #64748b; font-weight: 500; display: block;">Session Infrastructure</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td align="right" style="vertical-align: middle;">
+                    <span style="display: inline-block; padding: 4px 10px; background-color: ${badgeBg}; border: 1px solid ${badgeBorder}; color: ${badgeColor}; font-size: 11px; font-weight: 700; border-radius: 6px; letter-spacing: 0.4px; text-transform: uppercase;">
+                      ${badgeText}
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Main Body -->
+          <tr>
+            <td style="padding: 32px;">
+              <h1 style="margin: 0 0 6px 0; font-size: 20px; font-weight: 700; color: #0f172a; line-height: 1.3;">
+                ${heading}
+              </h1>
+              <p style="margin: 0 0 20px 0; font-size: 13px; color: #64748b; font-weight: 500;">
+                ${subheading}
+              </p>
+
+              <!-- Greeting -->
+              <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #334155;">
+                Hello <strong>${recipientName}</strong>,
+              </p>
+
+              ${maintenanceWindow ? `
+              <!-- Highlighted Maintenance Window Callout -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; margin-bottom: 22px;">
+                <tr>
+                  <td style="padding: 16px 20px;">
+                    <div style="font-size: 11px; font-weight: 800; color: #92400e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
+                      ⚡ Scheduled Maintenance Interval
+                    </div>
+                    <div style="font-size: 15px; font-weight: 700; color: #78350f; font-family: monospace; margin-bottom: 6px;">
+                      ${maintenanceWindow}
+                    </div>
+                    <div style="font-size: 12px; color: #b45309; line-height: 1.5;">
+                      Active dispatch sessions and background token sync will pause during this window. No account credentials will be lost.
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              ` : ''}
+
+              <!-- Formatted Message Container -->
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 22px;">
+                <div style="font-size: 14px; line-height: 1.7; color: #1e293b; white-space: pre-wrap;">${message}</div>
+              </div>
+
+              <!-- Metadata Info Grid -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top: 1px solid #f1f5f9; padding-top: 14px; margin-bottom: 14px;">
+                <tr>
+                  <td style="font-size: 12px; color: #64748b; padding-bottom: 5px;">Tenant / Organization:</td>
+                  <td align="right" style="font-size: 12px; font-weight: 600; color: #0f172a; padding-bottom: 5px;">${orgName}</td>
+                </tr>
+                <tr>
+                  <td style="font-size: 12px; color: #64748b; padding-bottom: 5px;">Timestamp:</td>
+                  <td align="right" style="font-size: 12px; font-weight: 600; color: #0f172a; padding-bottom: 5px;">${formattedTime}</td>
+                </tr>
+              </table>
+
+              ${telemetry ? `
+              <!-- Telemetry Diagnostics Pill (Crisp, High-Contrast) -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 10px;">
+                <tr>
+                  <td style="padding: 12px 16px;">
+                    <div style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
+                      Fleet Environment Diagnostics
+                    </div>
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 11px; font-family: monospace; color: #334155;">
+                      <tr>
+                        <td style="padding-bottom: 3px; color: #64748b;">Client Version:</td>
+                        <td align="right" style="font-weight: 600;">${telemetry.appVersion || 'v1.9.6'}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding-bottom: 3px; color: #64748b;">Target Board:</td>
+                        <td align="right" style="font-weight: 600;">${telemetry.targetDomain || 'one.dat.com'}</td>
+                      </tr>
+                      <tr>
+                        <td style="color: #64748b;">Egress Latency:</td>
+                        <td align="right" style="font-weight: 600;">${telemetry.latency || '38ms'}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              ` : ''}
+
+            </td>
+          </tr>
+
+          <!-- Enterprise Footer -->
+          <tr>
+            <td style="padding: 24px 32px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center;">
+              <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 600; color: #475569;">
+                ZONIX Systems • Enterprise Dispatch Infrastructure
+              </p>
+              <p style="margin: 0 0 8px 0; font-size: 11px; color: #94a3b8;">
+                701 Tillery St, Suite 12, Austin, TX 78702 • Urgent Support: <a href="mailto:support@thezonix.com" style="color: #1e40af; text-decoration: none; font-weight: 600;">support@thezonix.com</a>
+              </p>
+              <p style="margin: 0; font-size: 10px; color: #cbd5e1;">
+                Dispatched securely via ZONIX Support Engine.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>
-  `;
+  `.trim();
+}
 
-  // 1. Try Primary Resend API (from support@thezonix.com to recipientEmail)
+/**
+ * Send Customer Support Ticket or Scheduled Notice
+ * Delivers directly to target user email(s) with clean enterprise branding.
+ */
+async function sendSupportTicket({
+  recipients = [],
+  userEmail,
+  username = 'Dispatcher',
+  orgName = 'ZONIX Organization',
+  subject,
+  message,
+  ticketType = 'SUPPORT',
+  maintenanceWindow = null,
+  telemetry = null
+}) {
+  // Resolve recipient list
+  let targetList = Array.isArray(recipients) && recipients.length > 0 ? recipients : [];
+  if (targetList.length === 0 && userEmail) {
+    targetList = [userEmail];
+  }
+  targetList = targetList
+    .map(e => (typeof e === 'string' ? e.trim() : ''))
+    .filter(e => e && !e.includes('@zonix.io') && e !== 'support.zonix@gmail.com');
+
+  if (targetList.length === 0) {
+    targetList = ['subhan07idrees@gmail.com'];
+  }
+
+  // Deduplicate
+  targetList = [...new Set(targetList)];
+
+  // Determine badge styling and headings
+  let badgeText = 'SUPPORT TICKET';
+  let badgeBg = '#f0fdf4';
+  let badgeBorder = '#bbf7d0';
+  let badgeColor = '#15803d';
+  let heading = `[Support Ticket] ${subject}`;
+  let subheading = `Operational request logged by ${username} (${orgName})`;
+
+  if (ticketType === 'MAINTENANCE') {
+    badgeText = 'SCHEDULED MAINTENANCE';
+    badgeBg = '#fef3c7';
+    badgeBorder = '#fde68a';
+    badgeColor = '#b45309';
+    heading = `[Maintenance Notice] ${subject}`;
+    subheading = `Scheduled service advisory for ${orgName} dispatchers`;
+  } else if (ticketType === 'ANNOUNCEMENT') {
+    badgeText = 'SYSTEM ADVISORY';
+    badgeBg = '#eff6ff';
+    badgeBorder = '#bfdbfe';
+    badgeColor = '#1d4ed8';
+    heading = `[System Notice] ${subject}`;
+    subheading = `Operations advisory broadcasted to ${orgName}`;
+  }
+
+  const html = buildExecutiveEmailHtml({
+    badgeText,
+    badgeBg,
+    badgeBorder,
+    badgeColor,
+    heading,
+    subheading,
+    recipientName: username,
+    orgName,
+    message,
+    maintenanceWindow,
+    telemetry
+  });
+
+  const emailSubject = heading;
+  const primaryRecipient = targetList[0];
+  const bccRecipients = targetList.length > 1 ? targetList.slice(1) : [];
+
+  // 1. Try Primary Resend API (support@thezonix.com)
   const apiKey = process.env.RESEND_API_KEY;
   if (apiKey) {
     try {
@@ -308,37 +513,37 @@ async function sendSupportTicket({ userEmail, username, orgName, subject, messag
         },
         body: JSON.stringify({
           from: 'ZONIX Support <support@thezonix.com>',
-          to: [recipientEmail],
-          bcc: ['support.zonix@gmail.com'],
+          to: [primaryRecipient],
+          bcc: bccRecipients.length > 0 ? bccRecipients : ['support.zonix@gmail.com'],
           reply_to: 'support.zonix@gmail.com',
-          subject: `[ZONIX Support] Confirmation: ${subject}`,
+          subject: emailSubject,
           html
         })
       });
       const data = await res.json();
       if (res.ok && data.id) {
-        console.log(`[EmailService] Support ticket delivered from domain support@thezonix.com to user ${recipientEmail} (ID: ${data.id})`);
-        return { success: true, emailId: data.id, recipient: recipientEmail };
+        console.log(`[EmailService] Executive dispatch delivered via domain support@thezonix.com to ${targetList.length} user(s) (ID: ${data.id})`);
+        return { success: true, emailId: data.id, recipients: targetList };
       }
     } catch (e) {
-      console.warn('[EmailService] Resend API support ticket failed, fallback to Gmail...');
+      console.warn('[EmailService] Resend API attempt failed, switching to Gmail SMTP fallback...', e.message);
     }
   }
 
-  // 2. Fallback Gmail SMTP (from support.zonix@gmail.com to recipientEmail)
+  // 2. Fallback Gmail SMTP (support.zonix@gmail.com)
   try {
     const info = await supportTransporter.sendMail({
       from: '"ZONIX Support Engine" <support.zonix@gmail.com>',
-      to: recipientEmail,
-      bcc: 'support.zonix@gmail.com',
+      to: primaryRecipient,
+      bcc: bccRecipients.length > 0 ? bccRecipients : 'support.zonix@gmail.com',
       replyTo: 'support.zonix@gmail.com',
-      subject: `[ZONIX Support] Confirmation: ${subject}`,
+      subject: emailSubject,
       html
     });
-    console.log(`[EmailService] Support ticket delivered from support.zonix@gmail.com to user ${recipientEmail} (ID: ${info.messageId})`);
-    return { success: true, emailId: info.messageId, recipient: recipientEmail };
+    console.log(`[EmailService] Executive dispatch delivered via Gmail fallback to ${targetList.length} user(s) (MessageId: ${info.messageId})`);
+    return { success: true, emailId: info.messageId, recipients: targetList };
   } catch (err) {
-    console.error('[EmailService] Support ticket send error:', err.message);
+    console.error('[EmailService] Executive dispatch send error:', err.message);
     return { success: false, error: err.message };
   }
 }
@@ -346,64 +551,14 @@ async function sendSupportTicket({ userEmail, username, orgName, subject, messag
 /**
  * Send System Maintenance / Update Announcement to Users
  */
-async function sendBroadcastEmail({ recipients, subject, announcementText }) {
-  const html = `
-<!DOCTYPE html>
-<html>
-<body style="background-color: #0b0f19; color: #e5e7eb; font-family: sans-serif; padding: 24px;">
-  <div style="max-width: 600px; margin: 0 auto; background: #111827; border: 1px solid #1f2937; border-radius: 16px; padding: 24px;">
-    <h2 style="color: #f59e0b; margin-top: 0;">📢 ZONIX System Notice & Maintenance Update</h2>
-    <div style="background: #0d1322; border: 1px solid #1e293b; border-radius: 10px; padding: 16px; margin: 16px 0;">
-      <h3 style="color: #ffffff; margin-top: 0;">${subject}</h3>
-      <p style="white-space: pre-wrap; color: #d1d5db; font-size: 14px; line-height: 1.6;">${announcementText}</p>
-    </div>
-    <p style="font-size: 11px; color: #6b7280; text-align: center;">This is an official system announcement from ZONIX Support Team.</p>
-  </div>
-</body>
-</html>
-  `;
-
-  // Try Primary Resend API (support@thezonix.com)
-  const apiKey = process.env.RESEND_API_KEY;
-  if (apiKey) {
-    try {
-      const res = await fetch(RESEND_API_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          from: 'ZONIX Support <support@thezonix.com>',
-          to: recipients,
-          subject: `[ZONIX Notice] ${subject}`,
-          html
-        })
-      });
-      const data = await res.json();
-      if (res.ok && data.id) {
-        console.log(`[EmailService] System announcement broadcasted via domain support@thezonix.com to ${recipients.length} users (ID: ${data.id})`);
-        return { success: true, emailId: data.id };
-      }
-    } catch (e) {
-      console.warn('[EmailService] Resend broadcast failed, fallback to Gmail...');
-    }
-  }
-
-  // Fallback Gmail SMTP
-  try {
-    const info = await supportTransporter.sendMail({
-      from: '"ZONIX Support" <support.zonix@gmail.com>',
-      to: recipients,
-      subject: `[ZONIX Notice] ${subject}`,
-      html
-    });
-    console.log(`[EmailService] System announcement broadcasted via Gmail to ${recipients.length} recipients`);
-    return { success: true, emailId: info.messageId };
-  } catch (err) {
-    console.error('[EmailService] Broadcast email error:', err.message);
-    return { success: false, error: err.message };
-  }
+async function sendBroadcastEmail({ recipients, subject, announcementText, maintenanceWindow }) {
+  return sendSupportTicket({
+    recipients,
+    subject,
+    message: announcementText,
+    ticketType: maintenanceWindow ? 'MAINTENANCE' : 'ANNOUNCEMENT',
+    maintenanceWindow
+  });
 }
 
 module.exports = {
