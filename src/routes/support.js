@@ -15,9 +15,29 @@ router.post('/ticket', async (req, res) => {
   const prisma = req.app.get('prisma');
 
   try {
-    const userEmail = req.user?.email || 'dispatcher@thezonix.com';
-    const username = req.user?.username || 'Dispatcher';
-    const orgName = req.user?.orgName || 'ZONIX Organization';
+    let userEmail = req.user?.email;
+    let username = req.user?.username || 'Dispatcher';
+    let orgName = req.user?.orgName;
+
+    const userId = req.user?.userId || req.user?.id;
+    if (userId && (!userEmail || !orgName)) {
+      try {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: userId },
+          include: { org: true }
+        });
+        if (dbUser) {
+          userEmail = dbUser.email || userEmail;
+          username = dbUser.username || username;
+          orgName = dbUser.org?.displayName || dbUser.org?.name || orgName;
+        }
+      } catch (dbErr) {
+        console.warn('[SupportRoute] DB lookup warning:', dbErr.message);
+      }
+    }
+
+    userEmail = userEmail || 'support.zonix@gmail.com';
+    orgName = orgName || 'ZONIX Organization';
 
     // 1. Always deliver ticket to support.zonix@gmail.com
     const ticketResult = await sendSupportTicket({

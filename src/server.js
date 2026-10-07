@@ -95,6 +95,7 @@ app.use('/api/cookies', authenticateToken, cookieRoutes);
 app.use('/api/dashboard', authenticateToken, dashboardRoutes);
 app.use('/api/invites', inviteRoutes);
 app.use('/api/support', authenticateToken, supportRoutes);
+app.use('/api/organizations/support', authenticateToken, supportRoutes);
 
 app.use(auditMiddleware);
 
