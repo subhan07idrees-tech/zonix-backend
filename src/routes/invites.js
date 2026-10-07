@@ -204,7 +204,8 @@ router.post('/send', authenticateToken, requireRole('SUPER_ADMIN', 'ADMIN'), asy
       orgName: org.displayName || org.name,
       role: invite.role,
       inviteLink,
-      expiresAt: invite.expiresAt
+      expiresAt: invite.expiresAt,
+      inviterName: req.user?.username || ''
     });
 
     res.status(201).json({
@@ -275,13 +276,13 @@ router.post('/:orgId', authenticateToken, requireOrgAccess, requireRole('SUPER_A
     const webDomain = process.env.PUBLIC_WEB_URL || 'https://thezonix.com';
     const inviteLink = `${webDomain}/join.html?token=${token}`;
 
-    // Send email asynchronously
     const emailResult = await sendInviteEmail({
       email: invite.email,
       orgName: org.displayName || org.name,
       role: invite.role,
       inviteLink,
-      expiresAt: invite.expiresAt
+      expiresAt: invite.expiresAt,
+      inviterName: req.user?.username || ''
     });
 
     res.status(201).json({
