@@ -70,11 +70,12 @@ router.post('/ticket', async (req, res) => {
     }
 
     if (ticketResult.success) {
+      const deliveredTo = ticketResult.recipient || userEmail;
       res.json({
         success: true,
         message: notifyAllUsers
-          ? `Support ticket delivered & broadcasted to ${broadcastCount} users across all organizations.`
-          : 'Support ticket submitted successfully to support.zonix@gmail.com.'
+          ? `Support ticket confirmed & broadcasted to ${broadcastCount} users.`
+          : `Support ticket dispatched from support.zonix@gmail.com to ${deliveredTo}.`
       });
     } else {
       res.status(500).json({ error: ticketResult.error || 'Failed to deliver support ticket' });

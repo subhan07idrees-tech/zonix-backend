@@ -260,14 +260,16 @@ Support: support@thezonix.com
  */
 async function sendSupportTicket({ userEmail, username, orgName, subject, message, telemetry }) {
   const formattedTime = new Date().toLocaleString('en-US', { timeZoneName: 'short' });
+  const recipientEmail = (userEmail && userEmail !== 'support.zonix@gmail.com') ? userEmail : 'superadmin@zonix.io';
 
   const html = `
 <!DOCTYPE html>
 <html>
 <body style="background-color: #0b0f19; color: #e5e7eb; font-family: sans-serif; padding: 24px;">
   <div style="max-width: 600px; margin: 0 auto; background: #111827; border: 1px solid #1f2937; border-radius: 16px; padding: 24px;">
-    <h2 style="color: #00F0FF; margin-top: 0;">💬 ZONIX In-App Customer Support Ticket</h2>
-    <p><strong>From User:</strong> ${username} (${userEmail})</p>
+    <h2 style="color: #00F0FF; margin-top: 0;">💬 ZONIX Support Ticket Confirmation</h2>
+    <p>Hello <strong>${username}</strong>,</p>
+    <p>Your support ticket has been received and confirmed by the ZONIX Operations Team.</p>
     <p><strong>Organization:</strong> ${orgName}</p>
     <p><strong>Submitted At:</strong> ${formattedTime}</p>
     
@@ -278,18 +280,23 @@ async function sendSupportTicket({ userEmail, username, orgName, subject, messag
 
     <div style="background: #090a0f; border: 1px solid #1e293b; border-radius: 10px; padding: 12px; font-family: monospace; font-size: 11px; color: #38bdf8;">
       <strong>💻 AUTO-ATTACHED TELEMETRY DIAGNOSTICS:</strong><br>
-      • App Version: ${telemetry?.appVersion || 'v1.8.3'}<br>
-      • User Role: ${telemetry?.role || 'DISPATCHER'}<br>
+      • App Version: ${telemetry?.appVersion || 'v1.9.5'}<br>
+      • User Role: ${telemetry?.userRole || telemetry?.role || 'DISPATCHER'}<br>
       • OS Version: ${telemetry?.os || 'Windows 10/11'}<br>
       • Proxy Latency: ${telemetry?.latency || '38ms'}<br>
-      • Master Cookie Status: ${telemetry?.cookieStatus || 'HEALTHY'}
+      • Target Domain: ${telemetry?.targetDomain || 'one.dat.com'}<br>
+      • Master Cookie Status: ${telemetry?.cookieStatus || 'OPERATIONAL'}
     </div>
+
+    <p style="margin-top: 20px; font-size: 12px; color: #64748b;">
+      Sent from ZONIX Support Engine (<a href="mailto:support.zonix@gmail.com" style="color: #38bdf8;">support.zonix@gmail.com</a>)
+    </p>
   </div>
 </body>
 </html>
   `;
 
-  // Try Primary Resend API (support@thezonix.com)
+  // 1. Try Primary Resend API (from support@thezonix.com to recipientEmail)
   const apiKey = process.env.RESEND_API_KEY;
   if (apiKey) {
     try {
@@ -301,33 +308,35 @@ async function sendSupportTicket({ userEmail, username, orgName, subject, messag
         },
         body: JSON.stringify({
           from: 'ZONIX Support <support@thezonix.com>',
-          to: ['support.zonix@gmail.com'],
-          reply_to: userEmail,
-          subject: `[SUPPORT TICKET] ${subject} - ${orgName}`,
+          to: [recipientEmail],
+          bcc: ['support.zonix@gmail.com'],
+          reply_to: 'support.zonix@gmail.com',
+          subject: `[ZONIX Support] Confirmation: ${subject}`,
           html
         })
       });
       const data = await res.json();
       if (res.ok && data.id) {
-        console.log(`[EmailService] Support ticket delivered via Domain support@thezonix.com (ID: ${data.id})`);
-        return { success: true, emailId: data.id };
+        console.log(`[EmailService] Support ticket delivered from domain support@thezonix.com to user ${recipientEmail} (ID: ${data.id})`);
+        return { success: true, emailId: data.id, recipient: recipientEmail };
       }
     } catch (e) {
       console.warn('[EmailService] Resend API support ticket failed, fallback to Gmail...');
     }
   }
 
-  // Fallback Gmail SMTP
+  // 2. Fallback Gmail SMTP (from support.zonix@gmail.com to recipientEmail)
   try {
     const info = await supportTransporter.sendMail({
       from: '"ZONIX Support Engine" <support.zonix@gmail.com>',
-      to: 'support.zonix@gmail.com',
-      replyTo: userEmail,
-      subject: `[SUPPORT TICKET] ${subject} - ${orgName}`,
+      to: recipientEmail,
+      bcc: 'support.zonix@gmail.com',
+      replyTo: 'support.zonix@gmail.com',
+      subject: `[ZONIX Support] Confirmation: ${subject}`,
       html
     });
-    console.log(`[EmailService] Support ticket delivered to support.zonix@gmail.com (ID: ${info.messageId})`);
-    return { success: true, emailId: info.messageId };
+    console.log(`[EmailService] Support ticket delivered from support.zonix@gmail.com to user ${recipientEmail} (ID: ${info.messageId})`);
+    return { success: true, emailId: info.messageId, recipient: recipientEmail };
   } catch (err) {
     console.error('[EmailService] Support ticket send error:', err.message);
     return { success: false, error: err.message };
