@@ -19,6 +19,10 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ error: 'Session not found' });
     }
 
+    if (req.user && req.user.role !== 'SUPER_ADMIN' && session.orgId !== req.user.orgId) {
+      return res.status(403).json({ error: 'Access denied to this session' });
+    }
+
     await prisma.session.update({
       where: { id: sessionId },
       data: { lastHeartbeat: new Date() }

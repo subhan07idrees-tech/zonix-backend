@@ -60,6 +60,11 @@ router.get('/:orgId', async (req, res) => {
     });
 
     const targetOrgId = org ? org.id : orgId;
+
+    if (req.user.role !== 'SUPER_ADMIN' && targetOrgId !== req.user.orgId) {
+      return res.status(403).json({ error: 'Access denied to this organization events' });
+    }
+
     const where = { orgId: targetOrgId };
     if (type) {
       where.action = `event:${type}`;

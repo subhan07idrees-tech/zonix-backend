@@ -1,5 +1,5 @@
 const express = require('express');
-const { requireOrgAccess } = require('../middleware/auth');
+const { requireRole, requireOrgAccess } = require('../middleware/auth');
 const SessionService = require('../services/session');
 
 const router = express.Router();
@@ -103,6 +103,19 @@ router.post('/:sessionId/heartbeat', async (req, res) => {
   const { sessionId } = req.params;
 
   try {
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      select: { id: true, orgId: true }
+    });
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    if (req.user.role !== 'SUPER_ADMIN' && session.orgId !== req.user.orgId) {
+      return res.status(403).json({ error: 'Access denied to this session' });
+    }
+
     const sessionService = new SessionService(prisma);
     await sessionService.updateHeartbeat(sessionId);
 
@@ -113,28 +126,33 @@ router.post('/:sessionId/heartbeat', async (req, res) => {
   }
 });
 
-router.delete('/:sessionId', async (req, res) => {
+router.delete('/:sessionId', requireRole('SUPER_ADMIN', 'ADMIN', 'MANAGER', 'DISPATCHER'), async (req, res) => {
   const prisma = req.app.get('prisma');
   const { sessionId } = req.params;
 
   try {
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      select: { id: true, orgId: true }
+    });
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    if (req.user.role !== 'SUPER_ADMIN' && session.orgId !== req.user.orgId) {
+      return res.status(403).json({ error: 'Access denied to this session' });
+    }
+
     const sessionService = new SessionService(prisma);
     await sessionService.endSession(sessionId, 'admin-command');
 
-    const { broadcastToOrg } = require('../server');
-    const session = await prisma.session.findUnique({
-      where: { id: sessionId },
-      select: { orgId: true }
+    const { broadcastToOrg, broadcastSessions } = require('../server');
+    broadcastToOrg(session.orgId, {
+      type: 'command:kill',
+      sessionId
     });
-
-    if (session) {
-      const { broadcastSessions } = require('../server');
-      broadcastToOrg(session.orgId, {
-        type: 'command:kill',
-        sessionId
-      });
-      broadcastSessions(session.orgId);
-    }
+    broadcastSessions(session.orgId);
 
     res.json({ success: true, message: 'Session killed' });
   } catch (err) {
@@ -143,7 +161,7 @@ router.delete('/:sessionId', async (req, res) => {
   }
 });
 
-router.post('/:sessionId/restart', async (req, res) => {
+router.post('/:sessionId/restart', requireRole('SUPER_ADMIN', 'ADMIN', 'MANAGER', 'DISPATCHER'), async (req, res) => {
   const prisma = req.app.get('prisma');
   const { sessionId } = req.params;
 
@@ -155,6 +173,10 @@ router.post('/:sessionId/restart', async (req, res) => {
 
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
+    }
+
+    if (req.user.role !== 'SUPER_ADMIN' && session.orgId !== req.user.orgId) {
+      return res.status(403).json({ error: 'Access denied to this session' });
     }
 
     const sessionService = new SessionService(prisma);

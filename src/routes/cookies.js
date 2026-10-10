@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { requireOrgAccess } = require('../middleware/auth');
+const { requireOrgAccess, requireRole } = require('../middleware/auth');
 const { encryptData, decryptData } = require('../services/encryption');
 
 router.post('/store', requireOrgAccess, async (req, res) => {
@@ -130,18 +130,20 @@ router.get('/retrieve/:orgId/:userId/:targetDomain', requireOrgAccess, async (re
   }
 });
 
-router.delete('/:orgId/:userId/:targetDomain', requireOrgAccess, async (req, res) => {
+router.delete('/:orgId/:userId/:targetDomain', requireOrgAccess, requireRole('SUPER_ADMIN', 'ADMIN', 'MANAGER'), async (req, res) => {
   const prisma = req.app.get('prisma');
   const { orgId, userId, targetDomain } = req.params;
 
   try {
-    await prisma.masterCookie.delete({
+    const result = await prisma.masterCookie.deleteMany({
       where: {
-        orgId_userId_targetDomain: { orgId, userId, targetDomain }
+        orgId,
+        userId,
+        targetDomain
       }
     });
 
-    res.json({ success: true, message: 'Cookies deleted' });
+    res.json({ success: true, count: result.count, message: 'Cookies deleted' });
   } catch (err) {
     console.error('[Cookies] Delete error:', err.message);
     res.status(500).json({ error: 'Failed to delete cookies' });

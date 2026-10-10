@@ -160,12 +160,13 @@ router.post('/send', authenticateToken, requireRole('SUPER_ADMIN', 'ADMIN'), asy
   const { email, role = 'DISPATCHER', maxTabs = 5, orgId } = req.body;
 
   try {
+    const targetOrgIdentifier = (req.user.role === 'SUPER_ADMIN' && orgId) ? orgId : (req.user.orgId || orgId);
     let org = await prisma.organization.findFirst({
       where: {
         OR: [
-          { id: orgId },
-          { name: orgId },
-          { displayName: orgId }
+          { id: targetOrgIdentifier },
+          { name: targetOrgIdentifier },
+          { displayName: targetOrgIdentifier }
         ]
       }
     });
@@ -174,7 +175,7 @@ router.post('/send', authenticateToken, requireRole('SUPER_ADMIN', 'ADMIN'), asy
       org = await prisma.organization.findUnique({ where: { id: req.user.orgId } });
     }
 
-    if (!org) {
+    if (!org && req.user.role === 'SUPER_ADMIN') {
       org = await prisma.organization.findFirst();
     }
 
@@ -307,9 +308,24 @@ router.post('/:orgId', authenticateToken, requireOrgAccess, requireRole('SUPER_A
 // Admin: Cancel / Delete an invitation
 router.delete('/:orgId/:inviteId', authenticateToken, requireOrgAccess, requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
   const prisma = req.app.get('prisma');
-  const { inviteId } = req.params;
+  const { orgId, inviteId } = req.params;
 
   try {
+    let org = await prisma.organization.findFirst({
+      where: {
+        OR: [{ id: orgId }, { name: orgId }, { displayName: orgId }]
+      }
+    });
+    const targetOrgId = org ? org.id : orgId;
+
+    const invite = await prisma.userInvite.findFirst({
+      where: { id: inviteId, orgId: targetOrgId }
+    });
+
+    if (!invite) {
+      return res.status(404).json({ error: 'Invitation not found in this organization' });
+    }
+
     await prisma.userInvite.delete({ where: { id: inviteId } });
     res.json({ success: true, message: 'Invitation cancelled' });
   } catch (err) {

@@ -81,6 +81,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 app.set('prisma', prisma);
+app.use(auditMiddleware);
 
 const supportRoutes = require('./routes/support');
 
@@ -96,8 +97,6 @@ app.use('/api/dashboard', authenticateToken, dashboardRoutes);
 app.use('/api/invites', inviteRoutes);
 app.use('/api/support', authenticateToken, supportRoutes);
 app.use('/api/organizations/support', authenticateToken, supportRoutes);
-
-app.use(auditMiddleware);
 
 app.get('/api/health', (req, res) => {
   res.json({

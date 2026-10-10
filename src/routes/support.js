@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { requireRole } = require('../middleware/auth');
 const { sendSupportTicket, sendBroadcastEmail } = require('../services/email');
 
 /**
@@ -70,7 +71,10 @@ router.post('/ticket', async (req, res) => {
         recipients = orgUsers.map(u => u.email).filter(Boolean);
       }
     } else if (audience === 'all' || notifyAllUsers) {
-      // Fleet-wide (SuperAdmin or notifyAllUsers)
+      // Fleet-wide broadcast only allowed for SUPER_ADMIN
+      if (req.user && req.user.role !== 'SUPER_ADMIN') {
+        return res.status(403).json({ error: 'Only Super Admins can dispatch fleet-wide notifications' });
+      }
       const allUsers = await prisma.user.findMany({
         where: { email: { not: null } },
         select: { email: true }
@@ -135,7 +139,7 @@ router.post('/ticket', async (req, res) => {
  * Super Admin Broadcast System Announcement / Maintenance Notice
  * POST /api/support/broadcast
  */
-router.post('/broadcast', async (req, res) => {
+router.post('/broadcast', requireRole('SUPER_ADMIN'), async (req, res) => {
   const { subject, announcementText } = req.body;
   const prisma = req.app.get('prisma');
 

@@ -23,10 +23,10 @@ router.get('/', async (req, res) => {
       prisma.organization.count({ where: { status: 'ACTIVE' } }),
       prisma.user.count({ where: orgFilter }),
       prisma.user.count({ where: { ...orgFilter, status: 'ACTIVE' } }),
-      prisma.session.count({ where: { status: 'ACTIVE' } }),
-      prisma.session.count(),
-      prisma.proxyNode.count({ where: { status: 'ACTIVE' } }),
-      prisma.proxyNode.count(),
+      prisma.session.count({ where: { ...orgFilter, status: 'ACTIVE' } }),
+      prisma.session.count({ where: orgFilter }),
+      prisma.proxyNode.count({ where: { ...orgFilter, status: 'ACTIVE' } }),
+      prisma.proxyNode.count({ where: orgFilter }),
       prisma.auditLog.findMany({
         where: { ...orgFilter, resource: 'event' },
         orderBy: { createdAt: 'desc' },
@@ -37,10 +37,11 @@ router.get('/', async (req, res) => {
     const sysTotalUsers = await prisma.user.count();
     const sysActiveUsers = await prisma.user.count({ where: { status: 'ACTIVE' } });
 
-    const totalOrgs = totalOrgsCount;
-    const activeOrgs = activeOrgsCount;
-    const totalUsers = orgUsersCount || sysTotalUsers;
-    const activeUsers = orgActiveUsersCount || sysActiveUsers;
+    const isSuperAdmin = req.user.role === 'SUPER_ADMIN';
+    const totalOrgs = isSuperAdmin ? totalOrgsCount : 1;
+    const activeOrgs = isSuperAdmin ? activeOrgsCount : 1;
+    const totalUsers = isSuperAdmin ? sysTotalUsers : orgUsersCount;
+    const activeUsers = isSuperAdmin ? sysActiveUsers : orgActiveUsersCount;
     const activeSessions = activeSessionsCount;
     const totalSessions = totalSessionsCount;
     const activeProxies = activeProxiesCount;
@@ -115,20 +116,22 @@ router.get('/', async (req, res) => {
 
 router.get('/health', async (req, res) => {
   const prisma = req.app.get('prisma');
+  const orgFilter = (req.user && req.user.role !== 'SUPER_ADMIN' && req.user.orgId) ? { orgId: req.user.orgId } : {};
 
   try {
     const dbHealthy = await prisma.$queryRaw`SELECT 1`.then(() => true).catch(() => false);
 
-    const activeSessions = await prisma.session.count({ where: { status: 'ACTIVE' } });
+    const activeSessions = await prisma.session.count({ where: { ...orgFilter, status: 'ACTIVE' } });
     const staleSessions = await prisma.session.count({
       where: {
+        ...orgFilter,
         status: 'ACTIVE',
         lastHeartbeat: { lt: new Date(Date.now() - 5 * 60 * 1000) }
       }
     });
 
     const unhealthyProxies = await prisma.proxyNode.count({
-      where: { status: { in: ['UNREACHABLE', 'DEGRADED'] } }
+      where: { ...orgFilter, status: { in: ['UNREACHABLE', 'DEGRADED'] } }
     });
 
     const overallHealth = dbHealthy && unhealthyProxies === 0 && staleSessions === 0

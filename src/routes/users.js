@@ -184,6 +184,22 @@ router.delete('/:orgId/:userId', requireOrgAccess, requireRole('SUPER_ADMIN', 'A
   const { orgId, userId } = req.params;
 
   try {
+    const currentUserId = req.user.userId || req.user.id;
+    if (currentUserId === userId) {
+      return res.status(400).json({ error: 'Cannot delete your own user account' });
+    }
+
+    const existingUser = await prisma.user.findFirst({
+      where: { id: userId, orgId }
+    });
+    if (!existingUser) {
+      return res.status(404).json({ error: 'User not found in this organization' });
+    }
+
+    if (existingUser.role === 'SUPER_ADMIN' && req.user.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ error: 'Only Super Admins can delete Super Admin accounts' });
+    }
+
     await prisma.user.delete({
       where: { id: userId }
     });
@@ -195,13 +211,25 @@ router.delete('/:orgId/:userId', requireOrgAccess, requireRole('SUPER_ADMIN', 'A
   }
 });
 
-// Single-param fallback routes for frontend convenience
-router.patch('/:userId/status', async (req, res) => {
+// Single-param fallback routes with strict multi-tenant and role enforcement
+router.patch('/:userId/status', requireRole('SUPER_ADMIN', 'ADMIN', 'MANAGER'), async (req, res) => {
   const prisma = req.app.get('prisma');
   const { userId } = req.params;
   const { status } = req.body;
 
   try {
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, orgId: true, role: true }
+    });
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (req.user.role !== 'SUPER_ADMIN' && targetUser.orgId !== req.user.orgId) {
+      return res.status(403).json({ error: 'Access denied to user outside your organization' });
+    }
+
     const updated = await prisma.user.update({
       where: { id: userId },
       data: { status },
@@ -214,12 +242,28 @@ router.patch('/:userId/status', async (req, res) => {
   }
 });
 
-router.put('/:userId', async (req, res) => {
+router.put('/:userId', requireRole('SUPER_ADMIN', 'ADMIN', 'MANAGER'), async (req, res) => {
   const prisma = req.app.get('prisma');
   const { userId } = req.params;
   const { role, status, email, password, maxTabs } = req.body;
 
   try {
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, orgId: true, role: true }
+    });
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (req.user.role !== 'SUPER_ADMIN' && targetUser.orgId !== req.user.orgId) {
+      return res.status(403).json({ error: 'Access denied to user outside your organization' });
+    }
+
+    if (role === 'SUPER_ADMIN' && req.user.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ error: 'Only Super Admins can promote users to Super Admin' });
+    }
+
     let passwordHash = undefined;
     if (password) {
       const bcrypt = require('bcryptjs');
@@ -253,11 +297,32 @@ router.put('/:userId', async (req, res) => {
   }
 });
 
-router.delete('/:userId', async (req, res) => {
+router.delete('/:userId', requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
   const prisma = req.app.get('prisma');
   const { userId } = req.params;
 
   try {
+    const currentUserId = req.user.userId || req.user.id;
+    if (currentUserId === userId) {
+      return res.status(400).json({ error: 'Cannot delete your own user account' });
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, orgId: true, role: true }
+    });
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (req.user.role !== 'SUPER_ADMIN' && targetUser.orgId !== req.user.orgId) {
+      return res.status(403).json({ error: 'Access denied to user outside your organization' });
+    }
+
+    if (targetUser.role === 'SUPER_ADMIN' && req.user.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ error: 'Only Super Admins can delete Super Admin accounts' });
+    }
+
     await prisma.user.delete({
       where: { id: userId }
     });

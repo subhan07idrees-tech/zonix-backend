@@ -24,7 +24,7 @@ function encryptData(plaintext) {
   }
 }
 
-function decryptData(encryptedDataHex, ivHex) {
+function decryptData(encryptedDataHex, ivHex, expectedHash = null) {
   try {
     const key = CryptoJS.SHA256(ENCRYPTION_KEY);
     const iv = CryptoJS.enc.Hex.parse(ivHex);
@@ -40,7 +40,16 @@ function decryptData(encryptedDataHex, ivHex) {
       padding: CryptoJS.pad.Pkcs7
     });
 
-    return decrypted.toString(CryptoJS.enc.Utf8);
+    const decryptedStr = decrypted.toString(CryptoJS.enc.Utf8);
+    if (!decryptedStr && ciphertext.sigBytes > 0) {
+      throw new Error('Malformed or corrupted ciphertext');
+    }
+
+    if (expectedHash && hashString(decryptedStr) !== expectedHash) {
+      throw new Error('Ciphertext integrity hash mismatch');
+    }
+
+    return decryptedStr;
   } catch (err) {
     console.error('[Crypto] Decryption failed:', err.message);
     throw new Error('Decryption failed');
