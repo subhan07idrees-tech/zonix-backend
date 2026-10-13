@@ -15,6 +15,22 @@ const auditMiddleware = (req, res, next) => {
   next();
 };
 
+function extractClientIp(req) {
+  if (req.headers['cf-connecting-ip']) {
+    return req.headers['cf-connecting-ip'].trim();
+  }
+  if (req.headers['x-forwarded-for']) {
+    const list = req.headers['x-forwarded-for'].split(',');
+    if (list.length > 0 && list[0].trim()) {
+      return list[0].trim();
+    }
+  }
+  if (req.headers['x-real-ip']) {
+    return req.headers['x-real-ip'].trim();
+  }
+  return req.ip || req.connection?.remoteAddress || '';
+}
+
 async function logAuditEvent(req) {
   const prisma = req.app.get('prisma');
   if (!prisma) return;
@@ -24,7 +40,7 @@ async function logAuditEvent(req) {
     const resource = extractResource(req.path);
     const resourceId = req.params.id || req.params.sessionId || null;
 
-    const ipAddress = req.ip || req.connection?.remoteAddress || '';
+    const ipAddress = extractClientIp(req);
     const loc = await getIpLocation(ipAddress);
 
     let details = {};

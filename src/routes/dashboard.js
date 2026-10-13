@@ -156,14 +156,15 @@ router.get('/health', async (req, res) => {
 
 router.get('/audit', async (req, res) => {
   const prisma = req.app.get('prisma');
-  const { startDate, endDate, userId, resource, limit, offset } = req.query;
+  const { startDate, endDate, userId, resource, action, limit, offset } = req.query;
 
   try {
     const where = {};
     // SUPER_ADMIN sees logs from ALL orgs; others only see their own org
     if (req.user.role !== 'SUPER_ADMIN') where.orgId = req.user.orgId;
     if (userId) where.userId = userId;
-    if (resource) where.resource = resource;
+    if (action) where.action = { contains: action, mode: 'insensitive' };
+    if (resource) where.resource = { contains: resource, mode: 'insensitive' };
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) where.createdAt.gte = new Date(startDate);
@@ -175,7 +176,7 @@ router.get('/audit', async (req, res) => {
         where,
         include: {
           user: { select: { username: true } },
-          org: { select: { displayName: true } }
+          org: { select: { displayName: true, name: true } }
         },
         orderBy: { createdAt: 'desc' },
         take: parseInt(limit) || 100,

@@ -19,12 +19,17 @@ async function getIpLocation(ip) {
     return { city: 'Local', state: 'Loopback' };
   }
 
-  if (isPrivateIp(ip)) {
+  if (isPrivateIp(cleanIp)) {
     return { city: 'Private', state: 'Network' };
   }
 
   try {
-    const response = await fetch(`http://ip-api.com/json/${cleanIp}?fields=status,city,regionName`);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3500);
+    const response = await fetch(`http://ip-api.com/json/${cleanIp}?fields=status,city,regionName`, {
+      signal: controller.signal
+    });
+    clearTimeout(timer);
     if (response.ok) {
       const data = await response.json();
       if (data.status === 'success') {
