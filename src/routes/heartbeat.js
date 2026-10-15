@@ -19,6 +19,14 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ error: 'Session not found' });
     }
 
+    if (session.status === 'KILLED' || session.status === 'ENDED') {
+      return res.status(410).json({
+        success: false,
+        status: session.status,
+        error: 'Session terminated by administrator'
+      });
+    }
+
     if (req.user && req.user.role !== 'SUPER_ADMIN' && session.orgId !== req.user.orgId) {
       return res.status(403).json({ error: 'Access denied to this session' });
     }
